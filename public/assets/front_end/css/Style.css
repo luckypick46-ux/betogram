@@ -287,37 +287,25 @@ table {
 
 
 .top_nav {
-
-    background: #f6f7f9 none repeat scroll 0 0;
-
-    border: medium none;
-
+    background: #ffffff;
+    border-bottom: 1px solid #e8ebf0;
     border-radius: 0;
-
-    box-shadow: 0 1px 3px #ccc;
-
+    box-shadow: 0 1px 10px rgba(0, 0, 0, 0.08);
     margin: 0;
-
     position: fixed;
-
+    top: 0;
     width: 100%;
-
     z-index: 99;
-
 }
 
 .nav_hight {
-
-    height: 62px;
-
+    height: 72px;
 }
 
 .top_nav ul.nav > li > a {
-
-    color: #fff !important;
-
+    color: #333 !important;
     font-size: 15px;
-
+    line-height: 1.2;
 }
 
 li.dropdown.languages {
@@ -389,63 +377,48 @@ li.dropdown.profile_drop p b {
 }
 
 li.top_icon a {
+    padding: 14px 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+}
 
-    padding: 17px 15px;
-
+li.top_icon img {
+    max-width: 24px;
 }
 
 li.header_search {
-
-    padding: 12px 20px;
-
+    padding: 12px 10px;
 }
 
 li.header_search .input-group {
-
-    border: none;
-
-    box-shadow: none;
-
-    width: 300px;
-
-    border: 1px solid #000;
-
+    width: 320px;
+    border: 1px solid #e4e7ed;
     border-radius: 30px;
+    background: #f7f9fb;
+    box-shadow: none;
+}
 
+li.header_search .input-group-addon {
     background: transparent;
-
+    border: none;
+    color: #9aa2ac;
+    padding: 0 14px;
 }
 
 li.header_search input.form-control {
-
     border: none;
-
-}
-
-li.header_search .input-group {
-
-    border: none;
-
+    background: transparent;
     box-shadow: none;
-
-    width: 300px;
-
-    border: 2px solid #e5e5e5;
-
-    border-radius: 30px;
-
-    background: #fff none repeat scroll 0 0;
-
+    height: 40px;
+    padding: 0 12px;
 }
 
 li.header_search .input-group>.form-control {
-
     width: 100%;
-
     background: transparent;
-
     box-shadow: none;
-
 }
 
 ul.nav.navbar-nav.navbar-left > li > a {
@@ -967,17 +940,12 @@ ul.nav.navbar-nav.navbar-left > li > a {
 }
 
 .top_bar_logo a {
-
-    padding: 0px !important;
-
+    padding: 0 !important;
 }
 
 .top_bar_logo img {
-
-    width: 120px;
-
-    margin: 8px 0px;
-
+    width: 140px;
+    margin: 8px 0;
 }
 
 .dashboard_left {
@@ -2013,29 +1981,195 @@ ul.event_liest {
 }
 
 .profile_drop a.dropdown-toggle {
-
     background: transparent !important;
-
-    border: none !IMPORTANT;
-
-    padding: 0px 15px 0px 15px;
-
-    border-left: 1px solid #ccc !important;
-
-    display: inline-block;
-
-    margin: 17px 0px;
-
+    border: none !important;
+    padding: 12px 18px;
+    display: inline-flex;
+    align-items: center;
+    border-left: 1px solid #e8ebf0 !important;
+    margin: 0;
 }
 
 .profile_drop li a i {
-
-    color: #a6b7bf !important;
-
+    color: #6c7a89 !important;
     margin-right: 10px !important;
-
     width: 14px;
+}
 
+.profile_drop .dropdown-menu {
+    min-width: 220px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    border: none;
+    border-radius: 8px;
+}
+
+.profile_drop .dropdown-menu>li>a {
+    padding: 10px 16px !important;
+    color: #3b424f !important;
+}
+
+.profile_drop .dropdown-menu>li>a:hover {
+    background: #f8f9fb !important;
+}
+
+.btn-deposit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-radius: 30px;
+    background: #1d8d70;
+    color: #ffffff;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: background 0.2s ease;
+}
+
+.btn-deposit:hover {
+    background: #166f58;
+    color: #ffffff;
+}
+
+.btn-deposit i {
+    margin-right: 8px;
+}
+
+.deposit-page {
+    padding: 48px 0 80px;
+}
+
+.deposit-page .page-hero {
+    margin-bottom: 40px;
+}
+
+.deposit-page .page-hero-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border: 1px solid #e8eef4;
+    border-radius: 24px;
+    padding: 42px;
+    box-shadow: 0 24px 60px rgba(14, 38, 65, 0.06);
+}
+
+.deposit-page .page-hero-card h1 {
+    font-size: 38px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    color: #172b4d;
+}
+
+.deposit-page .page-hero-card p {
+    font-size: 16px;
+    line-height: 1.75;
+    color: #556e86;
+    max-width: 640px;
+}
+
+.deposit-page .payment-card {
+    background: #ffffff;
+    border: 1px solid #e8eef4;
+    border-radius: 22px;
+    padding: 32px;
+    min-height: 260px;
+    box-shadow: 0 20px 45px rgba(14, 38, 65, 0.06);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.deposit-page .payment-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 24px 60px rgba(14, 38, 65, 0.12);
+}
+
+.deposit-page .payment-card .payment-card-icon {
+    width: 56px;
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    color: #ffffff;
+    margin-bottom: 22px;
+    font-size: 22px;
+}
+
+.deposit-page .payment-card .payment-card-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #172b4d;
+}
+
+.deposit-page .payment-card .payment-card-text {
+    color: #6b7c93;
+    line-height: 1.75;
+    margin-bottom: 22px;
+    min-height: 82px;
+}
+
+.deposit-page .payment-card .btn-card-action {
+    padding: 10px 18px;
+    border-radius: 28px;
+    font-weight: 600;
+}
+
+.deposit-page .payment-grid .payment-card:nth-child(1) .payment-card-icon { background: #0061d5; }
+.deposit-page .payment-grid .payment-card:nth-child(2) .payment-card-icon { background: #1a75ff; }
+.deposit-page .payment-grid .payment-card:nth-child(3) .payment-card-icon { background: #ffb703; }
+.deposit-page .payment-grid .payment-card:nth-child(4) .payment-card-icon { background: #0047ab; }
+.deposit-page .payment-grid .payment-card:nth-child(5) .payment-card-icon { background: #1b1f3b; }
+.deposit-page .payment-grid .payment-card:nth-child(6) .payment-card-icon { background: #00a86b; }
+
+.deposit-page .method-summary {
+    margin-top: 12px;
+    color: #6b7c93;
+    font-size: 15px;
+}
+
+.deposit-page .method-summary span {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 16px;
+    margin-bottom: 10px;
+}
+
+.deposit-page .method-summary span i {
+    margin-right: 8px;
+    color: #2f6f91;
+}
+
+.deposit-page .note-card {
+    background: #fff;
+    border: 1px solid #e8eef4;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 20px 50px rgba(14, 38, 65, 0.04);
+}
+
+.deposit-page .note-card h3 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    color: #172b4d;
+}
+
+.deposit-page .note-card p {
+    color: #6b7c93;
+    line-height: 1.75;
+}
+
+.deposit-page .payment-grid .payment-card:last-child {
+    margin-top: -20px;
+}
+
+.deposit-page .deposit-notes {
+    margin-top: 46px;
+}
+
+.deposit-page .deposit-notes .note-card {
+    background: #ffffff;
+    border: 1px solid #e8eef4;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 20px 50px rgba(14, 38, 65, 0.04);
 }
 
 li.logo_font > a {
@@ -2049,6 +2183,48 @@ li.logo_font > a img.img-responsive {
     width: 88%;
 
 }
+
+/* Leaderboard styles */
+.leaderboard-page { padding: 24px 0; }
+.leaderboard-hero { margin-bottom: 18px; }
+.leaderboard-title { font-size: 28px; margin: 8px 0; color: #172b4d; }
+.leaderboard-subtitle { color: #6b7c93; margin-bottom: 0; }
+.leaderboard-controls .btn { margin-left: 6px; }
+
+.leader-card { background: #fff; border: 1px solid #e8eef4; border-radius: 12px; padding: 18px; display: flex; align-items: center; box-shadow: 0 8px 24px rgba(14,38,65,0.04); margin-bottom: 18px; }
+.leader-card .leader-rank { font-size: 22px; font-weight:700; width:48px; height:48px; border-radius:50%; background:#f1f6fb; display:flex; align-items:center; justify-content:center; margin-right:14px; color:#0b62d6; }
+.leader-card .leader-avatar img { width:56px; height:56px; border-radius:8px; }
+.leader-card .leader-info { flex:1; }
+.leader-card .leader-stats { font-weight:700; color:#1d8d70; }
+.leader-first .leader-rank { background: linear-gradient(135deg,#ffd54a,#ffb300); color:#2b2b2b; }
+.leader-second .leader-rank { background: linear-gradient(135deg,#cfd8dc,#90a4ae); color:#2b2b2b; }
+.leader-third .leader-rank { background: linear-gradient(135deg,#ffe0b2,#ffcc80); color:#2b2b2b; }
+
+.leaderboard-table { margin-top: 8px; }
+.leaderboard-table td, .leaderboard-table th { vertical-align: middle; }
+
+@media (max-width:767px){
+    .leader-card { flex-direction: row; }
+    .leaderboard-controls { text-align: left; margin-top:12px; }
+}
+
+/* Academy styles */
+.academy-page { padding: 48px 0 80px; }
+.academy-title { font-size: 36px; font-weight:700; color:#172b4d; margin-bottom:8px; }
+.academy-lead { color:#556e86; margin-bottom:18px; }
+.section-title { font-size:20px; margin:24px 0 12px; color:#172b4d; }
+.course-grid .course-card { background:#fff; border:1px solid #e8eef4; border-radius:12px; overflow:hidden; margin-bottom:20px; box-shadow:0 12px 30px rgba(14,38,65,0.04); }
+.course-card .course-thumb img{ width:100%; height:160px; object-fit:cover; }
+.course-card .course-body { padding:16px; }
+.course-card .course-meta { color:#7a8a99; margin-bottom:12px; }
+.btn-outline { border:1px solid #1d8d70; color:#1d8d70; background:transparent; padding:8px 12px; border-radius:6px; }
+.btn-outline:hover { background:#1d8d70; color:#fff; }
+.tutorial-card { background:#fff; border:1px solid #e8eef4; padding:16px; border-radius:8px; margin-bottom:12px; }
+.video-card { background:#fff; border:1px solid #e8eef4; padding:12px; border-radius:8px; }
+.tips-list { list-style:none; padding-left:0; }
+.tips-list li { padding:8px 0; color:#5b6b7f; }
+.faq-section .panel-default { border-radius:8px; overflow:hidden; margin-bottom:10px; }
+.faq-section .panel-default .panel-heading { background:#f8fafc; }
 
 .top_nav ul.nav.register_link > li:nth-child(1) > a,
 

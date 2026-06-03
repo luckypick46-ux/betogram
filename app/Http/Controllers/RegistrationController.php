@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
 use Illuminate\Routing\UrlGenerator;
 use App\Users;
+use App\Product;
 use App\Security_questions;
 use App\cms_email_templates;
 use Mail;
@@ -154,6 +155,106 @@ class RegistrationController extends Controller
         $userId = Session::get('user_id');
         $userData = Users::find($userId);
         return view('home',compact('userData'));
+    }
+
+    public function depositPage()
+    {
+        if(Session::get('user_id') == '')
+        {
+            return redirect(url('login'));
+        }
+        return view('deposit');
+    }
+
+    public function academyPage()
+    {
+        if(Session::get('user_id') == '')
+        {
+            return redirect(url('login'));
+        }
+        return view('academy');
+    }
+
+    public function shopPage()
+    {
+        if(Session::get('user_id') == '')
+        {
+            return redirect(url('login'));
+        }
+        return view('shop');
+    }
+
+    public function productsApi(Request $request)
+    {
+        // Try to fetch from DB, fallback to mock data
+        try {
+            $products = Product::select('id', 'title', 'price', 'description as desc', 'image')->get();
+            if ($products->count() > 0) {
+                return response()->json($products);
+            }
+        } catch (\Exception $e) {
+            // DB not set up yet, use mock data
+        }
+
+        // Mock data (always available)
+        $products = [
+            ['id' => 1, 'title' => 'Pro Betting Guide', 'price' => 29.00, 'image' => asset('assets/front_end/images/p1.png'), 'desc' => 'In-depth strategy guide for advanced bettors.'],
+            ['id' => 2, 'title' => 'Tactical Tee', 'price' => 19.00, 'image' => asset('assets/front_end/images/p2.png'), 'desc' => 'Premium cotton tee with Betogram logo.'],
+            ['id' => 3, 'title' => 'Starter Pack', 'price' => 9.99, 'image' => asset('assets/front_end/images/p3.png'), 'desc' => 'Quick start tips and tools for new users.'],
+            ['id' => 4, 'title' => 'Pro Cap', 'price' => 15.00, 'image' => asset('assets/front_end/images/p4.png'), 'desc' => 'Adjustable cap for everyday wear.'],
+            ['id' => 5, 'title' => 'Collector Poster', 'price' => 12.00, 'image' => asset('assets/front_end/images/p5.png'), 'desc' => 'High-quality poster featuring strategies.'],
+        ];
+        return response()->json($products);
+    }
+
+    public function leaderboardApi(Request $request)
+    {
+        $range = $request->get('range','week');
+
+        // Mock top 3 users
+        $top = [
+            [
+                'name' => 'Alex Morgan',
+                'avatar' => asset('assets/front_end/images/user_img.png'),
+                'level' => 'Pro',
+                'points' => 2400,
+                'win_rate' => 67,
+            ],
+            [
+                'name' => 'Jordan Smith',
+                'avatar' => asset('assets/front_end/images/user_img.png'),
+                'level' => 'Advanced',
+                'points' => 1900,
+                'win_rate' => 61,
+            ],
+            [
+                'name' => 'Sam Lee',
+                'avatar' => asset('assets/front_end/images/user_img.png'),
+                'level' => 'Pro',
+                'points' => 1700,
+                'win_rate' => 59,
+            ],
+        ];
+
+        // Mock additional users list
+        $list = [];
+        for ($i = 4; $i <= 20; $i++) {
+            $list[] = [
+                'name' => 'User ' . $i,
+                'avatar' => asset('assets/front_end/images/user_img.png'),
+                'level' => 'Member',
+                'rank' => $i,
+                'points' => rand(200, 1800),
+                'win_rate' => rand(45, 80),
+                'last_active' => rand(1, 72),
+            ];
+        }
+
+        return response()->json([
+            'range' => $range,
+            'top' => $top,
+            'list' => $list,
+        ]);
     }
     
     public function forgotPassMail(Request $request)

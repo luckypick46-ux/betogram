@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <rect width="1200" height="675" fill="#fffaf6"/>
+  <rect x="40" y="40" width="1120" height="595" rx="20" fill="#ffffff" stroke="#f0e6df"/>
+  <g transform="translate(90,110)">
+    <rect x="0" y="0" width="420" height="300" rx="12" fill="#ffd54a"/>
+    <g transform="translate(28,28)" fill="#3b2c08">
+      <rect x="0" y="0" width="200" height="12" rx="6"/>
+      <rect x="0" y="28" width="320" height="20" rx="10"/>
+      <rect x="0" y="64" width="260" height="16" rx="8"/>
+    </g>
+  </g>
+  <text x="560" y="220" font-family="'Open Sans', sans-serif" font-size="48" fill="#172b4d" font-weight="700">Bankroll Management</text>
+  <text x="560" y="270" font-family="'Open Sans', sans-serif" font-size="20" fill="#556e86">Protect your stake, size bets and survive variance with robust plans.</text>
+  <g transform="translate(560,320)">
+    <rect x="0" y="0" width="220" height="44" rx="8" fill="#ffb703"/>
+    <text x="110" y="30" font-family="'Open Sans', sans-serif" font-size="16" fill="#1b1f3b" text-anchor="middle">Start Course</text>
+  </g>
+</svg>

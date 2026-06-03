@@ -361,6 +361,51 @@
                                 <div role="tabpanel" class="tab-pane" id="bets">
                                 </div>
                                 <div role="tabpanel" class="tab-pane" id="leaderboard">
+                                  <div class="leaderboard-page">
+                                    <div class="row leaderboard-hero">
+                                      <div class="col-md-8">
+                                        <h2 class="leaderboard-title">Leaderboard</h2>
+                                        <p class="leaderboard-subtitle">Top performers on Betogram. Track rankings, wins, and recent activity across weekly, monthly and all-time leaderboards.</p>
+                                      </div>
+                                      <div class="col-md-4 text-right leaderboard-controls">
+                                        <div class="btn-group" role="group" aria-label="Time range">
+                                          <button class="btn btn-default btn-sm active" data-range="week">This Week</button>
+                                          <button class="btn btn-default btn-sm" data-range="month">This Month</button>
+                                          <button class="btn btn-default btn-sm" data-range="all">All Time</button>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div class="row leaderboard-top" id="leaderboard-top">
+                                      <!-- Top 3 will be rendered here by JS -->
+                                    </div>
+
+                                    <div class="row leaderboard-table-wrap">
+                                      <div class="col-md-12">
+                                        <div class="panel panel-default">
+                                          <div class="panel-body">
+                                            <div class="table-responsive">
+                                              <table class="table table-striped table-hover leaderboard-table">
+                                                <thead>
+                                                  <tr>
+                                                    <th>#</th>
+                                                    <th>User</th>
+                                                    <th>Rank</th>
+                                                    <th>Points</th>
+                                                    <th>Win Rate</th>
+                                                    <th>Recent Activity</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody id="leaderboard-table-body">
+                                                  <!-- Rows will be injected here by JS -->
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                            </div>
                       </div>
@@ -382,5 +427,77 @@
 		$('.alert-danger').fadeOut('fast');
         $('.alert-success').fadeOut('fast');
 	}, 4000);
+  });
+</script>
+<script>
+  // Leaderboard fetch + render (mock API)
+  function renderLeaderboard(range) {
+    $.getJSON("{{ url('api/leaderboard') }}", { range: range }, function(res) {
+      // Top 3
+      var topHtml = '';
+      res.top.forEach(function(u, idx) {
+        var rank = idx + 1;
+        var cls = rank === 1 ? 'first' : (rank === 2 ? 'second' : 'third');
+        topHtml += '<div class="col-md-4">';
+        topHtml += '<div class="leader-card leader-' + cls + '">';
+        topHtml += '<div class="leader-rank">' + rank + '</div>';
+        topHtml += '<div class="leader-avatar"><img src="' + u.avatar + '" alt="' + u.name + '"></div>';
+        topHtml += '<div class="leader-info"><h4>' + u.name + '</h4><p class="small muted">' + u.level + ' • ' + u.points + ' points</p></div>';
+        topHtml += '<div class="leader-stats">' + u.win_rate + '% win rate</div>';
+        topHtml += '</div></div>';
+      });
+      $('#leaderboard-top').html(topHtml);
+
+      // Table
+      var rows = '';
+      res.list.forEach(function(u, i) {
+        rows += '<tr>';
+        rows += '<td>' + u.rank + '</td>';
+        rows += '<td><div class="media"><div class="media-left"><img class="media-object img-circle" src="' + u.avatar + '" style="width:40px;height:40px;" alt="' + u.name + '"></div><div class="media-body"><h5 class="media-heading">' + u.name + '</h5><small class="muted">Level ' + u.level + '</small></div></div></td>';
+        rows += '<td>' + u.level + '</td>';
+        rows += '<td>' + u.points + '</td>';
+        rows += '<td>' + u.win_rate + '%</td>';
+        rows += '<td><small class="text-muted">' + u.last_active + ' hrs ago</small></td>';
+        rows += '</tr>';
+      });
+      $('#leaderboard-table-body').html(rows);
+    });
+  }
+
+  $(function(){
+    // initial load
+    renderLeaderboard('week');
+
+    // time range buttons
+    $(document).on('click', '.leaderboard-controls .btn', function(e){
+      e.preventDefault();
+      $('.leaderboard-controls .btn').removeClass('active');
+      $(this).addClass('active');
+      var range = $(this).data('range') || 'week';
+      renderLeaderboard(range);
+    });
+  });
+</script>
+<script>
+  // Ensure Leaderboard tab activates even if Bootstrap tab plugin fails
+  $(document).on('click', 'a[href="#leaderboard"]', function(e){
+    console.log('Leaderboard tab clicked');
+    e.preventDefault();
+    var $anchor = $(this);
+    try{
+      if ($anchor.tab) {
+        $anchor.tab('show');
+      } else {
+        $('.tab-content .tab-pane').removeClass('active');
+        $('#leaderboard').addClass('active');
+      }
+    } catch(err) {
+      // fallback
+      $('.tab-content .tab-pane').removeClass('active');
+      $('#leaderboard').addClass('active');
+    }
+    // render leaderboard content after activation
+    var currentRange = $('.leaderboard-controls .btn.active').data('range') || 'week';
+    renderLeaderboard(currentRange);
   });
 </script>

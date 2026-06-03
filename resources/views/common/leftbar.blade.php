@@ -31,13 +31,13 @@ use App\Users;
                      </a>
                     </li>
                      <li class="">
-                     <a href="#">
+                     <a href="{{ url('academy') }}">
                        <img src="{{asset('assets/front_end/images/academy.png')}}">
                        <span>academy</span>
                      </a>
                     </li>
                      <li class="">
-                     <a href="#">
+                     <a href="{{ url('shop') }}">
                        <img src="{{asset('assets/front_end/images/shop.png')}}">
                        <span>shop</span>
                      </a>
@@ -45,33 +45,33 @@ use App\Users;
                     <div class="divider"></div>
 
                     <li class="">
-                       <a href="#">
+                       <a href="{{ url('football') }}">
                          <img src="{{asset('assets/front_end/images/football.png')}}">
                          <span>football</span>
                        </a>
                     </li>
                     <li class="">
-                       <a href="#">
+                       <a href="{{ url('hockey') }}">
                          <img src="{{asset('assets/front_end/images/hockey.png')}}">
                          <span>hockey </span>
                        </a>
                     </li>
                     <li class="">
-                       <a href="#">
+                       <a href="{{ url('basketball') }}">
                          <img src="{{asset('assets/front_end/images/basketball.png')}}">
                          <span>basketball</span>
                        </a>
                     </li>
                     <li class="">
-                       <a href="#">
+                       <a href="{{ url('boxing') }}">
                          <img src="{{asset('assets/front_end/images/boxing.png')}}">
                          <span>boxing</span>
                        </a>
                     </li>
                     <li class="">
-                       <a href="#">
+                       <a href="{{ url('american-football') }}">
                          <img src="{{asset('assets/front_end/images/american-football.png')}}">
-                         <span>amarican football</span>
+                         <span>american football</span>
                        </a>
                     </li>
                     <li class="">

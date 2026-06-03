@@ -147,7 +147,7 @@
                               </div>
                            </div>
                            <div class="form-group">
-                              <select class=" AgeGroup selectpicker">
+                              <select class=" AgeGroup selectpicker" name="country">
                                  <option value="India">India</option>
                                  <option value="Australia">Australia</option>
                                  <option value="USA">USA</option>
@@ -162,15 +162,15 @@
                         <div class="col-md-6">
                            <div class="form-group">
                               <div class="checkbox">
-                                 <input id="checkbox1" type="checkbox">
+                                 <input id="checkbox1" type="checkbox" required>
                                  <label for="checkbox1">
                                  I am at least 18 years old and have read & accept the Terms and Conditions, Privacy Policy, Betting Rules & Responsible Gaming.
                                  </label>
                               </div>
                            </div>
-                           <div class="form-group nocaptcha">
-                              <!--img src="{{asset('assets/front_end/images/nocaptcha.gif')}}"-->
-                              <div class="g-recaptcha" data-sitekey="6LdugSgUAAAAAEgPCG1COHHLqZljonv9dw0UEAs-"></div>
+                           <!-- reCAPTCHA Widget -->
+                           <div class="form-group">
+                               <div class="g-recaptcha" data-sitekey="6Ld6sQEtAAAAAHhzrfRNKJThTwbrM6uX1Y1Ihh5P"></div>
                            </div>
                         </div>
                         <div class="clearfix"></div>
@@ -192,5 +192,7 @@ function check_validation()
     $("#registration").validationEngine();
 }
 </script>
+<!-- Google reCAPTCHA API -->
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 @include('footer')
 @include('footer_link')

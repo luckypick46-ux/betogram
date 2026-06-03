@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <rect width="1200" height="675" fill="#f6fbff"/>
+  <rect x="40" y="40" width="1120" height="595" rx="20" fill="#ffffff" stroke="#e6eef4"/>
+  <g transform="translate(90,110)">
+    <circle cx="180" cy="180" r="140" fill="#1a75ff"/>
+    <g fill="#fff">
+      <rect x="120" y="80" width="120" height="18" rx="9"/>
+      <rect x="120" y="108" width="80" height="14" rx="7"/>
+      <rect x="92" y="148" width="216" height="16" rx="8"/>
+    </g>
+  </g>
+  <text x="560" y="220" font-family="'Open Sans', sans-serif" font-size="48" fill="#172b4d" font-weight="700">Odds & Value</text>
+  <text x="560" y="270" font-family="'Open Sans', sans-serif" font-size="20" fill="#556e86">Learn to read implied probability and spot market mispricing.</text>
+  <g transform="translate(560,320)">
+    <rect x="0" y="0" width="220" height="44" rx="8" fill="#1a75ff"/>
+    <text x="110" y="30" font-family="'Open Sans', sans-serif" font-size="16" fill="#fff" text-anchor="middle">Start Course</text>
+  </g>
+</svg>

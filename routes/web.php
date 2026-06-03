@@ -17,7 +17,33 @@ Route::get('/contact','LandingPageController@contact');
 Route::get('/faq','LandingPageController@faq');
 Route::get('/change-password','RegistrationController@change_password');
 Route::post('/change-password-data','RegistrationController@change_password_data');
-Route::post('/search-username','NewsFeedController@SearchByUsername');//-----newsfeed start-----------//
+Route::get('/deposit','RegistrationController@depositPage');
+Route::get('/api/leaderboard','RegistrationController@leaderboardApi');
+Route::get('/academy','RegistrationController@academyPage');
+Route::get('/shop','RegistrationController@shopPage');
+Route::get('/api/products','RegistrationController@productsApi');
+// Cart endpoints
+Route::post('/api/cart/add','CartController@addToCart');
+Route::post('/api/cart/remove','CartController@removeFromCart');
+Route::post('/api/cart/update','CartController@updateCart');
+Route::get('/api/cart','CartController@getCartItems');
+Route::post('/api/cart/clear','CartController@clearCart');
+// Payment endpoints
+Route::post('/api/checkout','PaymentController@initiateCheckout');
+Route::post('/api/checkout/success','PaymentController@checkoutSuccess');
+Route::get('/api/orders','PaymentController@orderHistory');
+Route::post('/api/webhooks/stripe','PaymentController@stripeWebhook');
+Route::post('/api/webhooks/paypal','PaymentController@paypalWebhook');// Betting/Football routes
+Route::get('/football','BettingController@footballPage');
+Route::get('/hockey','BettingController@hockeyPage');
+Route::get('/basketball','BettingController@basketballPage');
+Route::get('/boxing','BettingController@boxingPage');
+Route::get('/american-football','BettingController@americanFootballPage');
+Route::get('/api/fixtures','BettingController@getFixtures');
+Route::post('/api/bet/place','BettingController@placeBet');
+Route::get('/api/bet/slip','BettingController@getBetSlip');
+Route::post('/api/bet/remove','BettingController@removeBet');
+Route::post('/api/bet/submit','BettingController@submitBetSlip');Route::post('/search-username','NewsFeedController@SearchByUsername');//-----newsfeed start-----------//
 //Route::post('/preregdata','LandingPageController@PreRegistration');
 //Route::get('register', ['uses'=>'RegistrationController@Register','as'=>'Register']);
 Route::get('/test-upload','testing@index');
