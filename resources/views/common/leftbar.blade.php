@@ -24,8 +24,8 @@ use App\Users;
                        <span>Home</span>
                      </a>
                     </li>
-                     <li class="">
-                     <a href="#">
+                     <li class="{{ Request::is('leaderboard') ? 'active' : '' }}">
+                     <a href="{{ url('leaderboard') }}">
                        <img src="{{asset('assets/front_end/images/leaderboard.png')}}">
                        <span>leaderboard </span>
                      </a>
@@ -75,19 +75,19 @@ use App\Users;
                        </a>
                     </li>
                     <li class="">
-                       <a href="#">
+                       <a href="{{ url('golf') }}">
                          <img src="{{asset('assets/front_end/images/golf.png')}}">
                          <span>golf</span>
                        </a>
                     </li>
                     <li class="">
-                       <a href="#">
+                       <a href="{{ url('baseball') }}">
                          <img src="{{asset('assets/front_end/images/baseball.png')}}">
                          <span>baseball</span>
                        </a>
                     </li>
                     <li class="">
-                       <a href="#">
+                       <a href="{{ url('tennis') }}">
                          <img src="{{asset('assets/front_end/images/tennisball.png')}}">
                          <span>tennis</span>
                        </a>
