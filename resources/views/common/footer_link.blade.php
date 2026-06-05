@@ -1,4 +1,3 @@
-</body>
 <script src="{{asset('assets/front_end/js/bootstrap.min.js')}}" type="text/javascript"></script>
 <script src="{{asset('assets/front_end/js/bootstrap-select.js')}}" type="text/javascript"></script>
 <script src="{{asset('assets/front_end/js/velocity.min.js')}}" type="text/javascript"></script>
@@ -16,7 +15,6 @@
 
     })(jQuery);
   </script>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/velocity/1.5.0/velocity.ui.min.js"></script>
 <script type="text/javascript">
 // add the animation to the modal
 $(".modal").each(function(index) {

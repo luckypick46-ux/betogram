@@ -141,9 +141,7 @@
                 </label>
             </div>
    	 	</div>
-   	 	<div class="form-group nocaptcha">
-          <div class="g-recaptcha" data-sitekey="6LdugSgUAAAAAEgPCG1COHHLqZljonv9dw0UEAs-"></div>
-       </div>
+
    	 </div>
    	 <div class="clearfix"></div>
    	 <div class="Registration_button">

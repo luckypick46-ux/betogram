@@ -38,79 +38,117 @@ class RegistrationController extends Controller
         $activation_code = uniqid(rand(), true);
         $random_code = uniqid(rand(), true);
         $activation_link = $base_url.'/activation/'.$activation_code;
-        if($request->input('g-recaptcha-response'))
-        {
+
+        $verifyCaptcha = true;
+        if ($request->input('g-recaptcha-response')) {
             $secret = '6LdugSgUAAAAAKzP2UhLpSJpabo7cwaD7-jMBTRi';
-			$verifyResponse = file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret='.$secret.'&response='.$request->input('g-recaptcha-response'));
-			$responseData = json_decode($verifyResponse);
-            if($responseData->success == 1)
-			{
-			      $data = array('profile_id'=>null,
-                       'user_name'=>$request->input('user_name'),
-                       'name'=>$request->input('name'),
-                       'email'=>$request->input('email'),
-                       'age_group'=>$request->input('age_group'),
-                       'password'=>md5($request->input('password')),
-                       'gender'=>$request->input('gender'),
-                       'country_id'=>$request->input('country'),
-                       'country_code'=>$request->input('country_code'),
-                       'contact_no'=>$request->input('contact_no'),
-                       'currency'=>$request->input('currency'),
-                       'city'=>$request->input('city'),
-                       'activation_code'=>$activation_code,
-				       'random_code'=>$random_code,
-                       'status'=>'0',
-                       'creation_date' => date("Y-m-d H:i:s"),
-					   'updation_date' => date("Y-m-d H:i:s"),
-					   'user_type'=>2,
-                       'roles_id'=>null,
-                       'social_media_id'=>null,
-                       'subscription_type'=>0,
-					   'forgot_pass'=>0
-                    );
-                 //print_r($data);die;
-                 $insert_data = Users::insert($data);
-                 if($insert_data == true)
-                 {
-                    $records = cms_email_templates::where('slug','activation_link')->get()->toArray();
-                    if(!empty($records))
-                    {
-                        $email = $request->input('email');
-                        $password = md5($request->input('password'));
-                        $firstName = explode(" ",$request->input('name'));
-                        $msg = preg_replace("/&#?[a-z0-9]+;/i","",$records[0]['content']);
-                		$msg = str_replace("[user]",$firstName[0],$msg);
-                		//$msg = str_replace("[email]",$email,$msg);
-                		//$msg = str_replace("[password]",$password,$msg);
-                		$msg = str_replace("[confirm]",$activation_link,$msg);
-                        $data['msg'] =$msg;
-                        Mail::send('mail_template', $data, function($message) use($records,$email){
-                             $message->to($email)->subject($records[0]['subject']);
-                         });
-                        echo "success"; 
-                    }
-                     
-                 }
-                 //$request->session()->flash('status', 'Registration successfully completed. Please check your email to activate your account.');
-                 //return redirect(url('login'));
-			}
-            else
-            {
-                echo "error1";
-                /*$request->session()->flash('status', 'Something went wrong!Please try again.');
-                return redirect(url('login'));*/
-            } 
+            $verifyResponse = file_get_contents('https://www.google.com/recaptcha/api/siteverify?secret='.$secret.'&response='.$request->input('g-recaptcha-response'));
+            $responseData = json_decode($verifyResponse);
+            $verifyCaptcha = ($responseData && isset($responseData->success) && $responseData->success == 1);
         }
-        else{
-            echo "error2";
-            /*$request->session()->flash('status', 'Please click on the reCAPTCHA box');
-            return redirect(url('/'));*/
+
+        if ($verifyCaptcha) {
+            $data = array(
+                'profile_id' => null,
+                'user_name' => $request->input('user_name'),
+                'name' => $request->input('name'),
+                'email' => $request->input('email'),
+                'age_group' => $request->input('age_group'),
+                'password' => md5($request->input('password')),
+                'gender' => $request->input('gender'),
+                'country_id' => $request->input('country'),
+                'country_code' => $request->input('country_code'),
+                'contact_no' => $request->input('contact_no'),
+                'currency' => $request->input('currency'),
+                'city' => $request->input('city'),
+                'activation_code' => $activation_code,
+                'random_code' => $random_code,
+                'status' => '1',
+                'creation_date' => date("Y-m-d H:i:s"),
+                'updation_date' => date("Y-m-d H:i:s"),
+                'user_type' => 2,
+                'roles_id' => null,
+                'social_media_id' => null,
+                'subscription_type' => 0,
+                'forgot_pass' => 0
+            );
+
+            $insert_data = Users::insert($data);
+            if ($insert_data == true) {
+                // Save to Firebase
+                $this->saveUserToFirebase($data);
+
+                // Get the inserted user's ID
+                $newUser = Users::where('email', $request->input('email'))->first();
+                if ($newUser) {
+                    // Automatically log in the new user
+                    Session::put('user_id', $newUser->id);
+                }
+
+                $records = cms_email_templates::where('slug','activation_link')->get()->toArray();
+                if (!empty($records)) {
+                    $email = $request->input('email');
+                    $firstName = explode(" ",$request->input('name'));
+                    $msg = preg_replace("/&#?[a-z0-9]+;/i","",$records[0]['content']);
+                    $msg = str_replace("[user]",$firstName[0],$msg);
+                    $msg = str_replace("[confirm]",$activation_link,$msg);
+                    $data['msg'] = $msg;
+                    Mail::send('mail_template', $data, function($message) use($records,$email){
+                        $message->to($email)->subject($records[0]['subject']);
+                    });
+                }
+                echo "success";
+            } else {
+                echo "failed";
+            }
+        } else {
+            echo "error1";
+        }
+    }
+
+    private function saveUserToFirebase($userData)
+    {
+        try {
+            $firebaseDbUrl = config('firebase.database_url');
+            $userId = md5($userData['email']);
+            
+            $firebaseData = [
+                'user_id' => $userId,
+                'user_name' => $userData['user_name'],
+                'name' => $userData['name'],
+                'email' => $userData['email'],
+                'age_group' => $userData['age_group'],
+                'gender' => $userData['gender'],
+                'country_id' => $userData['country_id'],
+                'contact_no' => $userData['contact_no'],
+                'currency' => $userData['currency'],
+                'city' => $userData['city'],
+                'status' => $userData['status'],
+                'user_type' => $userData['user_type'],
+                'creation_date' => $userData['creation_date'],
+            ];
+
+            // Firebase Realtime Database REST API
+            $url = $firebaseDbUrl . '/users/' . $userId . '.json';
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'PUT',
+                    'header' => 'Content-Type: application/json',
+                    'content' => json_encode($firebaseData),
+                    'timeout' => 5
+                ]
+            ]);
+
+            @file_get_contents($url, false, $context);
+        } catch (\Exception $e) {
+            // Firebase save failed, but local database save succeeded
+            // Log it but don't block registration
         }
     }
     
-    public function accountActivation($id,Request $request)
+    public function accountActivation($id, Request $request)
     {
-        if($id =='')
+        if($id == '')
         {
             $request->session()->flash('success','You have already verified.');
             return redirect(url('login'));
@@ -119,28 +157,28 @@ class RegistrationController extends Controller
                'activation_code'=>'',
                'status' => 1
                );
-		//$where = 'activation_code';
-		//$field = $id;
-		$query = Users::where('activation_code',$id)->update($data);
+        $query = Users::where('activation_code',$id)->update($data);
         $request->session()->flash('success', 'You have successfully verified!Please login to continue.');
         return redirect(url('login'));
     }
     
     public function getLogin(Request $request)
     {
-        //print_r($request->input());
         $username = $request->input('user_name');
         $password = md5($request->input('password'));
-        $query = Users::where('user_name',$username)->where('password',$password)->where('status',1)->get();
-                
-        if(count($query) > 0)
-        {
-            Session::put('user_id', $query[0]->id);
-            $value = Session::get('user_id');
-            $status = $query[0]->forgot_pass;
-            $request->session()->flash('success', 'You have successfully logged in.');
-            echo $status;
-        }else{
+        $user = Users::where('user_name',$username)->where('password',$password)->first();
+
+        if ($user) {
+            if ($user->status == 1) {
+                Session::put('user_id', $user->id);
+                $status = $user->forgot_pass;
+                $request->session()->flash('success', 'You have successfully logged in.');
+                echo $status;
+            } else {
+                $request->session()->flash('status', 'Please activate your account before logging in.');
+                echo "inactive";
+            }
+        } else {
             $request->session()->flash('status', 'Please try again');
             echo "failed";
         }

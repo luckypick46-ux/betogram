@@ -64,6 +64,7 @@
                         <div id="slip-bets" class="slip-content" style="max-height: 350px; overflow-y: auto; padding: 0;">
                             <p style="text-align: center; color: #999; padding: 20px;">No bets added yet</p>
                         </div>
+                        <div id="slip-alert" class="slip-alert" style="display:none;">Congratulations! You have a winning score prediction. Check your results below.</div>
 
                         <div style="padding: 15px; border-top: 1px solid #bedbcb; background: #fafafa;">
                             <div class="slip-summary-item">
@@ -144,6 +145,11 @@
 .slip-item-info { flex: 1; }
 .slip-item-match { font-size: 12px; font-weight: 600; color: #147541; }
 .slip-item-odd { font-size: 11px; color: #666; }
+.slip-item-status { display: inline-block; margin-top: 4px; padding: 2px 6px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+.slip-item-status.won { background: #1d8d70; color: #fff; }
+.slip-item-status.lost { background: #d9534f; color: #fff; }
+.slip-item-status.pending { background: #f0ad4e; color: #fff; }
+.slip-item-message { display: block; margin-top: 4px; font-size: 11px; color: #3a1f28; }
 .slip-item-remove { cursor: pointer; color: #d9534f; font-weight: 600; font-size: 16px; line-height: 1; }
 
 #submit-slip-btn:hover { background: #0b542d !important; }
@@ -266,7 +272,8 @@ $(function(){
 
             var statusInfo = fixture.status === 'upcoming'
                 ? '<div class="fixture-time-info"><i class="fa fa-clock-o"></i> ' + formatDate(fixture.kickoff_time) + '</div>'
-                : '<div class="fixture-score-info">' + statusBadge + ' <strong>' + fixture.home_score + ' - ' + fixture.away_score + '</strong></div>';
+                : '<div class="fixture-time-info"><i class="fa fa-clock-o"></i> ' + (fixture.stage_text || (fixture.status === 'finished' ? 'Full Time' : 'LIVE')) + '</div>' +
+                  '<div class="fixture-score-info">' + statusBadge + ' <strong>' + (fixture.home_score || 0) + ' - ' + (fixture.away_score || 0) + '</strong></div>';
 
             teamsDiv.append(statusInfo);
             matchRow.append(teamsDiv);
@@ -371,11 +378,22 @@ $(function(){
                     var info = $('<div class="slip-item-info"></div>');
                     info.append('<div class="slip-item-match">' + bet.fixture.home_team + ' v ' + bet.fixture.away_team + '</div>');
                     info.append('<div class="slip-item-odd">' + bet.selection + ' @ ' + bet.odds + '</div>');
+                    if (bet.status) {
+                        info.append('<span class="slip-item-status ' + bet.status + '">' + bet.status.toUpperCase() + '</span>');
+                    }
+                    if (bet.result_message) {
+                        info.append('<span class="slip-item-message">' + bet.result_message + '</span>');
+                    }
                     item.append(info);
                     var remove = $('<span class="slip-item-remove" data-bet-id="' + bet.id + '">×</span>');
                     item.append(remove);
                     $list.append(item);
                 });
+            }
+            if (data.congratulations && data.congratulations.length) {
+                $('#slip-alert').text(data.congratulations.join(' ')).show();
+            } else {
+                $('#slip-alert').hide();
             }
 
             $('#total-stake').text('$' + data.total_stake.toFixed(2));
@@ -386,9 +404,10 @@ $(function(){
 
     // Add bet
     $('body').on('click', '.odd-btn', function() {
-        var fixtureId = $(this).data('fixture-id');
-        var selection = $(this).data('selection');
-        var odds = $(this).data('odds');
+        var $button = $(this);
+        var fixtureId = $button.data('fixture-id');
+        var selection = $button.data('selection');
+        var odds = $button.data('odds');
 
         $.ajax({
             url: '{{ url('api/bet/place') }}',
@@ -396,13 +415,13 @@ $(function(){
             headers: {'X-CSRF-TOKEN': csrfToken},
             data: {
                 fixture_id: fixtureId,
-                market: $(this).data('market'),
+                market: $button.data('market'),
                 selection: selection,
                 odds: odds,
                 stake: parseFloat($('#stake-input').val())
             },
             success: function() {
-                $(this).addClass('selected');
+                $button.addClass('selected');
                 updateSlip();
             },
             error: function() {
@@ -462,5 +481,9 @@ $(function(){
     // Init
     fetchAndRenderAll();
     updateSlip();
+    setInterval(function() {
+        fetchAndRenderAll();
+        updateSlip();
+    }, 20000);
 });
 </script>

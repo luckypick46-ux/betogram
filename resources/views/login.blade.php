@@ -33,7 +33,7 @@ $(document).ready(function(){
 				  	 <div class="col-md-6">
 				  	   <div class="login_content_left">
 				  	 	<p>Create your account and experience the best platform for betters</p>
-				  	 	<a href="javascript:void(0);" data-toggle="modal"  onclick="openform()"> Create Account</a>
+				  	 	<a href="#" onclick="$('#registration_modal').modal('show'); return false;"> Create Account</a>
 				  	   </div> 	
 				  	 </div>
 				  	 <div class="col-md-6">
@@ -50,7 +50,7 @@ $(document).ready(function(){
 				                    <input class="form-control validate[required]" type="Password" placeholder="Enter Password" name="password"/>
 				                  </div>
 				                  <button id="login_button" class="btn-block" type="submit">Login </button>
-				                  <a href="javascript:void(0);" data-toggle="modal" data-target="#forgotpasswordmodal">Forgot Password?</a>
+			                  <a href="#" onclick="$('#forgotpasswordmodal').modal('show'); return false;">Forgot Password?</a>
 				              </form>
 				           </div>
 				           <div class="clearfix"></div>
@@ -98,8 +98,7 @@ $(document).ready(function(){
         <div class="registration_form"> 
 	       <div class="col-md-10 col-md-offset-1"> 
 	         <div class="row"> 
-             <!--script src="https://www.google.com/recaptcha/api.js" ></script-->
-	           <form id="registration" action="javascript:void(0);" method="post" autocomplete="off" onsubmit="formSubmit()"> 
+           <form id="registration" action="javascript:void(0);" method="post" autocomplete="off" onsubmit="formSubmit()"> 
 	           	 <div class="col-md-6">
 	           	  <div class="form-group">
 				    <input class="form-control validate[required,custom[onlyLetterSp]]" type="text" placeholder="Name" name="name"/>
@@ -224,7 +223,7 @@ $(document).ready(function(){
 	           	 </div>
 	           	 <div class="col-md-6">
 	           	 	<div class="form-group nocaptcha">
-                      <div class="g-recaptcha" id="g-recaptcha" data-sitekey="6LdugSgUAAAAAEgPCG1COHHLqZljonv9dw0UEAs-" data-callback="onReturnCallback" data-theme="light"></div>
+
                       <span id="captcha_error" class="captcha_error" style="display:none;"></span>
                    </div>
 	           	 </div>
@@ -243,7 +242,7 @@ $(document).ready(function(){
 		           	 </div>
                      <input type="hidden" name="_token" id="csrf_token" value="{{ csrf_token() }}"/>
 		           	 <div class="col-md-6 col-sm-6 col-xs-6">
-		           	  <button class="submit" type="submit" id="register">Create</button>
+		           	  <button class="submit" type="button" id="register" onclick="submitRegistrationForm()">Create</button>
 		             </div>
 	           	 </div>
 			   </form>
@@ -278,8 +277,7 @@ $(document).ready(function(){
         <div class="registration_form"> 
 	       <div class="col-md-8 col-md-offset-2"> 
 	         <div class="row"> 
-             <!--script src="https://www.google.com/recaptcha/api.js" ></script-->
-	           <form id="forgotPass" action="javascript:void(0);" method="post" autocomplete="off" onsubmit="ForgotPasswordFormSubmit()"> 
+           <form id="forgotPass" action="javascript:void(0);" method="post" autocomplete="off" onsubmit="ForgotPasswordFormSubmit()"> 
 	           	 <div class="col-md-12">
 	           	  <div class="form-group">
                     <!--label for="agegroup" style="display:none" id="agegroup">*Please select your agegroup<span class="text-error"></span></label-->
@@ -508,6 +506,11 @@ function formSubmit()
                     $("#UserEmailId").html(emaiId);
                     $("#body_loader").hide();
                     openSuccessModal();
+                    
+                    // Auto-login and redirect to home after 3 seconds
+                    setTimeout(function() {
+                        window.location.href = "{{url('home')}}";
+                    }, 3000);
                 } else if(result == "error1" || result == "error2") {
                     $("#body_loader").hide();
                     $("#captcha_error").html('Please select Re-Captcha').fadeIn('slow');
@@ -541,7 +544,12 @@ function loginFormSubmit()
                else if(result == 1)
                {
                     window.location.href = "{{url('change-password')}}";
-               }else if(result == 'failed')
+               }
+               else if(result == 'inactive')
+               {
+                    location.reload();
+               }
+               else if(result == 'failed')
                {
                     location.reload();
                }
@@ -645,25 +653,84 @@ function ResetFormForgotPassword()
     $('.selectpicker').selectpicker('refresh');
     $(".formError").remove()
 }
+
+function submitRegistrationForm()
+{
+    // Get form data
+    const name = $('input[name="name"]').val();
+    const user_name = $('input[name="user_name"]').last().val();
+    const email = $('input[name="email"]').val();
+    const age_group = $('[name="age_group"]').val();
+    const password = $('input[name="password"]').last().val();
+    const gender = $('input[name="gender"]:checked').val();
+    const currency = $('input[name="currency"]:checked').val();
+    const country = $('[name="country"]').val();
+    const city = $('input[name="city"]').val();
+    const country_code = $('[name="country_code"]').val();
+    const contact_no = $('input[name="contact_no"]').val();
+    const terms = $('input[name="checkbox1"]:checked').length;
+    
+    // Simple validation
+    if (!name || !user_name || !email || !password || !age_group || !gender || !currency || !country || !city || !contact_no || terms === 0) {
+        alert('Please fill all required fields');
+        return;
+    }
+    
+    if (password.length < 5) {
+        alert('Password must be at least 5 characters');
+        return;
+    }
+    
+    // Disable button and show loader
+    $("#register").prop('disabled', 'true');
+    $("#body_loader").show();
+    
+    // Submit via AJAX
+    $.ajax({
+        type: "POST",
+        url: "{{url('getRegister')}}",
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        data: {
+            name: name,
+            user_name: user_name,
+            email: email,
+            age_group: age_group,
+            password: password,
+            gender: gender,
+            currency: currency,
+            country: country,
+            city: city,
+            country_code: country_code,
+            contact_no: contact_no
+        },
+        success: function(result) {
+            $("#register").removeAttr('disabled');
+            if (result == "success") {
+                $("#captcha_error").html('').fadeOut('slow');
+                const emailId = email;
+                $("#UserEmailId").html(emailId);
+                $("#body_loader").hide();
+                openSuccessModal();
+                
+                // Redirect to home after 3 seconds
+                setTimeout(function() {
+                    window.location.href = "{{url('home')}}";
+                }, 3000);
+            } else if (result == "error1" || result == "error2") {
+                $("#body_loader").hide();
+                alert('Please select Re-Captcha');
+            } else if (result == "failed") {
+                $("#body_loader").hide();
+                alert('Registration failed. Please try again.');
+            }
+        },
+        error: function(xhr, status, error) {
+            $("#register").removeAttr('disabled');
+            $("#body_loader").hide();
+            alert('An error occurred: ' + error);
+        }
+    });
+}
 </script>
-<!--script>
-<!--script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script-->
-<!--script type="text/javascript">
-var onReturnCallback = function(response) { 
-    alert('g-recaptcha-response: ' + grecaptcha.getResponse()); 
-    var url='proxy.php?url=' + 'https://www.google.com/recaptcha/api/siteverify';  
-    $.ajax({ 'url' : url, 
-               dataType: 'json',
-               data: { response: response},
-               success: function( data  ) {                     
-                    var res = data.success.toString();
-                        alert( "User verified: " + res);                    
-                        if (res ==  'true') { 
-                            document.getElementById('g-recaptcha').innerHTML = 'THE CAPTCHA WAS SUCCESSFULLY SOLVED'; 
-                        } else {
-                            document.getElementById('g-recaptcha').innerHTML = 'ERROR';
-                        }
-                } // end of success: 
-         }); // end of $.ajax 
-}; // end of onReturnCallback 
-</script-->

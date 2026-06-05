@@ -13,8 +13,7 @@ class BettingController extends Controller
 {
     public function footballPage()
     {
-        if(Session::get('user_id') == '')
-        {
+        if (!Session::get('user_id')) {
             return redirect(url('login'));
         }
         return view('football');
@@ -22,8 +21,7 @@ class BettingController extends Controller
 
     public function hockeyPage()
     {
-        if(Session::get('user_id') == '')
-        {
+        if (!Session::get('user_id')) {
             return redirect(url('login'));
         }
         return view('hockey');
@@ -31,8 +29,7 @@ class BettingController extends Controller
 
     public function basketballPage()
     {
-        if(Session::get('user_id') == '')
-        {
+        if (!Session::get('user_id')) {
             return redirect(url('login'));
         }
         return view('basketball');
@@ -40,8 +37,7 @@ class BettingController extends Controller
 
     public function boxingPage()
     {
-        if(Session::get('user_id') == '')
-        {
+        if (!Session::get('user_id')) {
             return redirect(url('login'));
         }
         return view('boxing');
@@ -49,8 +45,7 @@ class BettingController extends Controller
 
     public function americanFootballPage()
     {
-        if(Session::get('user_id') == '')
-        {
+        if (!Session::get('user_id')) {
             return redirect(url('login'));
         }
         return view('american-football');
@@ -62,15 +57,19 @@ class BettingController extends Controller
         $status = $request->get('status', 'upcoming');
 
         try {
+            if ($sport === 'football') {
+                return response()->json($this->getMockFixtures($sport));
+            }
+
             $query = Fixture::where('sport', $sport)->with('odds')->orderBy('kickoff_time', 'asc');
 
-            if($status !== 'all') {
+            if ($status !== 'all') {
                 $query->where('status', $status);
             }
 
             $fixtures = $query->get();
 
-            if($fixtures->isEmpty()){
+            if ($fixtures->isEmpty()) {
                 return response()->json($this->getMockFixtures($sport));
             }
 
@@ -85,7 +84,7 @@ class BettingController extends Controller
     public function placeBet(Request $request)
     {
         $userId = Session::get('user_id');
-        if(!$userId){
+        if (!$userId) {
             return response()->json(['error' => 'Not authenticated'], 401);
         }
 
@@ -96,7 +95,7 @@ class BettingController extends Controller
         $odds = $request->input('odds');
 
         $fixture = Fixture::find($fixtureId);
-        if(!$fixture){
+        if (!$fixture) {
             return response()->json(['error' => 'Fixture not found'], 404);
         }
 
@@ -119,31 +118,56 @@ class BettingController extends Controller
     public function getBetSlip(Request $request)
     {
         $userId = Session::get('user_id');
-        if(!$userId){
+        if (!$userId) {
             return response()->json(['error' => 'Not authenticated'], 401);
         }
 
         $bets = Bet::where('user_id', $userId)
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'submitted', 'won', 'lost'])
             ->with('fixture')
             ->get();
 
-        $totalStake = $bets->sum('stake');
-        $totalOdds = 1;
-        $totalReturn = 1;
+        $activeBets = $bets->filter(function ($bet) {
+            return in_array($bet->status, ['pending', 'submitted']);
+        });
 
-        foreach($bets as $bet){
+        $totalStake = $activeBets->sum('stake');
+        $totalOdds = 1;
+
+        foreach ($activeBets as $bet) {
             $totalOdds *= $bet->odds;
         }
 
         $totalReturn = $totalStake * $totalOdds;
+        $congratulations = [];
+
+        foreach ($bets as $bet) {
+            $fixtureData = $bet->fixture ? $bet->fixture->toArray() : null;
+            if (!$fixtureData || ($bet->fixture && $bet->fixture->sport === 'football')) {
+                $fixtureData = $this->getFootballFixtureById($bet->fixture_id);
+            }
+
+            $evaluation = $this->evaluateBetAgainstFixture($bet, $fixtureData);
+
+            if ($bet->status !== $evaluation['status'] && in_array($evaluation['status'], ['won', 'lost'])) {
+                $bet->update(['status' => $evaluation['status']]);
+            }
+
+            $bet->status = $evaluation['status'];
+            $bet->result_message = $evaluation['message'];
+
+            if ($evaluation['status'] === 'won') {
+                $congratulations[] = $bet->result_message;
+            }
+        }
 
         return response()->json([
             'bets' => $bets,
-            'total_stake' => $totalStake,
+            'total_stake' => round($totalStake, 2),
             'total_odds' => round($totalOdds, 2),
             'total_return' => round($totalReturn, 2),
-            'count' => $bets->count(),
+            'count' => $activeBets->count(),
+            'congratulations' => $congratulations,
         ]);
     }
 
@@ -162,12 +186,11 @@ class BettingController extends Controller
         $userId = Session::get('user_id');
         $bets = Bet::where('user_id', $userId)->where('status', 'pending')->get();
 
-        if($bets->isEmpty()){
+        if ($bets->isEmpty()) {
             return response()->json(['error' => 'No bets in slip'], 400);
         }
 
-        // Mark all bets as submitted (in real scenario, integrate with payment)
-        foreach($bets as $bet){
+        foreach ($bets as $bet) {
             $bet->update(['status' => 'submitted']);
         }
 
@@ -176,251 +199,62 @@ class BettingController extends Controller
 
     private function getMockFixtures($sport = 'football')
     {
-        $fixtures = [];
-
-        if($sport === 'hockey') {
-            $leagues = ['NHL', 'KHL', 'AHL', 'SHL', 'Liiga'];
-            $statusTeams = [
-                'upcoming' => [
-                    ['Toronto Maple Leafs', 'Montreal Canadiens'],
-                    ['Washington Capitals', 'Carolina Hurricanes'],
-                    ['Calgary Flames', 'Edmonton Oilers'],
-                    ['New York Rangers', 'New Jersey Devils'],
-                    ['Vegas Golden Knights', 'Seattle Kraken'],
-                    ['Chicago Blackhawks', 'St. Louis Blues'],
-                    ['Vancouver Canucks', 'Winnipeg Jets'],
-                    ['Boston Bruins', 'Buffalo Sabres'],
-                    ['Florida Panthers', 'Tampa Bay Lightning'],
-                    ['Dallas Stars', 'Colorado Avalanche'],
-                ],
-                'live' => [
-                    ['Pittsburgh Penguins', 'Detroit Red Wings'],
-                    ['Los Angeles Kings', 'Anaheim Ducks'],
-                    ['Toronto Maple Leafs', 'Ottawa Senators'],
-                    ['Minnesota Wild', 'Nashville Predators'],
-                    ['Philadelphia Flyers', 'New York Islanders'],
-                    ['San Jose Sharks', 'Arizona Coyotes'],
-                    ['Carolina Hurricanes', 'Columbus Blue Jackets'],
-                    ['Montreal Canadiens', 'Buffalo Sabres'],
-                    ['Washington Capitals', 'Florida Panthers'],
-                    ['Calgary Flames', 'Vancouver Canucks'],
-                ],
-                'finished' => [
-                    ['Boston Bruins', 'Chicago Blackhawks'],
-                    ['Tampa Bay Lightning', 'Seattle Kraken'],
-                    ['New Jersey Devils', 'New York Rangers'],
-                    ['Colorado Avalanche', 'Dallas Stars'],
-                    ['Edmonton Oilers', 'Los Angeles Kings'],
-                    ['Pittsburgh Penguins', 'Washington Capitals'],
-                    ['Montreal Canadiens', 'Toronto Maple Leafs'],
-                    ['Philadelphia Flyers', 'New York Islanders'],
-                    ['Nashville Predators', 'Minnesota Wild'],
-                    ['Calgary Flames', 'St. Louis Blues'],
-                ],
-            ];
-        } elseif($sport === 'basketball') {
-            $leagues = ['NBA', 'EuroLeague', 'NBA G League', 'EuroCup', 'FIBA Champions League'];
-            $statusTeams = [
-                'upcoming' => [
-                    ['Los Angeles Lakers', 'Boston Celtics'],
-                    ['Golden State Warriors', 'Phoenix Suns'],
-                    ['Milwaukee Bucks', 'Brooklyn Nets'],
-                    ['Miami Heat', 'Philadelphia 76ers'],
-                    ['Denver Nuggets', 'Dallas Mavericks'],
-                    ['Chicago Bulls', 'New York Knicks'],
-                    ['Toronto Raptors', 'Miami Heat'],
-                    ['Houston Rockets', 'Los Angeles Clippers'],
-                    ['Atlanta Hawks', 'Sacramento Kings'],
-                    ['Orlando Magic', 'Indiana Pacers'],
-                ],
-                'live' => [
-                    ['Phoenix Suns', 'Los Angeles Lakers'],
-                    ['Boston Celtics', 'Milwaukee Bucks'],
-                    ['Denver Nuggets', 'Golden State Warriors'],
-                    ['Miami Heat', 'Brooklyn Nets'],
-                    ['Dallas Mavericks', 'Phoenix Suns'],
-                    ['Chicago Bulls', 'Toronto Raptors'],
-                    ['Philadelphia 76ers', 'New York Knicks'],
-                    ['Houston Rockets', 'Atlanta Hawks'],
-                    ['Utah Jazz', 'Sacramento Kings'],
-                    ['Oklahoma City Thunder', 'New Orleans Pelicans'],
-                ],
-                'finished' => [
-                    ['Los Angeles Clippers', 'Denver Nuggets'],
-                    ['Brooklyn Nets', 'Miami Heat'],
-                    ['Boston Celtics', 'Philadelphia 76ers'],
-                    ['Golden State Warriors', 'Phoenix Suns'],
-                    ['Dallas Mavericks', 'Memphis Grizzlies'],
-                    ['Chicago Bulls', 'Milwaukee Bucks'],
-                    ['New York Knicks', 'Toronto Raptors'],
-                    ['Houston Rockets', 'Denver Nuggets'],
-                    ['Atlanta Hawks', 'Orlando Magic'],
-                    ['Minnesota Timberwolves', 'Portland Trail Blazers'],
-                ],
-            ];
-        } elseif($sport === 'boxing') {
-            $leagues = ['WBC World Title', 'WBA Super', 'IBF Championship', 'WBO World', 'The Ring'];
-            $statusTeams = [
-                'upcoming' => [
-                    ['Canelo Alvarez', 'Gennadiy Golovkin'],
-                    ['Terence Crawford', 'Errol Spence Jr.'],
-                    ['Oleksandr Usyk', 'Tyson Fury'],
-                    ['Naoya Inoue', 'Josh Taylor'],
-                    ['Shakur Stevenson', 'Vasiliy Lomachenko'],
-                    ['Gervonta Davis', 'Ryan Garcia'],
-                    ['Devin Haney', 'Josh Taylor'],
-                    ['Artur Beterbiev', 'Dmitry Bivol'],
-                    ['Naoya Inoue', 'Emmanuel Navarrete'],
-                    ['Claressa Shields', 'Cecilia Braekhus'],
-                ],
-                'live' => [
-                    ['Terence Crawford', 'Errol Spence Jr.'],
-                    ['Canelo Alvarez', 'Gennadiy Golovkin'],
-                    ['Devin Haney', 'Josh Taylor'],
-                    ['Oleksandr Usyk', 'Tyson Fury'],
-                    ['Naoya Inoue', 'Josh Taylor'],
-                    ['Gervonta Davis', 'Ryan Garcia'],
-                    ['Artur Beterbiev', 'Dmitry Bivol'],
-                    ['Shakur Stevenson', 'Vasiliy Lomachenko'],
-                    ['Claressa Shields', 'Cecilia Braekhus'],
-                    ['Candy Jacobs', 'Rising Prospect'],
-                ],
-                'finished' => [
-                    ['Canelo Alvarez', 'Gennadiy Golovkin'],
-                    ['Terence Crawford', 'Errol Spence Jr.'],
-                    ['Oleksandr Usyk', 'Tyson Fury'],
-                    ['Naoya Inoue', 'Josh Taylor'],
-                    ['Shakur Stevenson', 'Vasiliy Lomachenko'],
-                    ['Devin Haney', 'Josh Taylor'],
-                    ['Gervonta Davis', 'Ryan Garcia'],
-                    ['Artur Beterbiev', 'Dmitry Bivol'],
-                    ['Claressa Shields', 'Cecilia Braekhus'],
-                    ['Errol Spence Jr.', 'Terence Crawford'],
-                ],
-            ];
-        } elseif($sport === 'american-football') {
-            $leagues = ['NFL Regular Season', 'NFL Playoffs', 'NCAA Bowl Weekend', 'XFL Showcase', 'USFL Prime'];
-            $statusTeams = [
-                'upcoming' => [
-                    ['Kansas City Chiefs', 'Buffalo Bills'],
-                    ['San Francisco 49ers', 'Dallas Cowboys'],
-                    ['Philadelphia Eagles', 'New York Giants'],
-                    ['Cincinnati Bengals', 'Baltimore Ravens'],
-                    ['Miami Dolphins', 'New England Patriots'],
-                    ['Los Angeles Rams', 'Seattle Seahawks'],
-                    ['Green Bay Packers', 'Chicago Bears'],
-                    ['Tampa Bay Buccaneers', 'New Orleans Saints'],
-                    ['Jacksonville Jaguars', 'Houston Texans'],
-                    ['Las Vegas Raiders', 'Denver Broncos'],
-                ],
-                'live' => [
-                    ['Buffalo Bills', 'New England Patriots'],
-                    ['Kansas City Chiefs', 'Las Vegas Raiders'],
-                    ['Dallas Cowboys', 'Washington Commanders'],
-                    ['San Francisco 49ers', 'Arizona Cardinals'],
-                    ['Miami Dolphins', 'New York Jets'],
-                    ['Baltimore Ravens', 'Pittsburgh Steelers'],
-                    ['Los Angeles Chargers', 'Kansas City Chiefs'],
-                    ['New Orleans Saints', 'Atlanta Falcons'],
-                    ['Minnesota Vikings', 'Detroit Lions'],
-                    ['Seattle Seahawks', 'Los Angeles Rams'],
-                ],
-                'finished' => [
-                    ['New York Giants', 'Philadelphia Eagles'],
-                    ['Cincinnati Bengals', 'Tennessee Titans'],
-                    ['Green Bay Packers', 'Chicago Bears'],
-                    ['Tampa Bay Buccaneers', 'Carolina Panthers'],
-                    ['Denver Broncos', 'Kansas City Chiefs'],
-                    ['Pittsburgh Steelers', 'Cleveland Browns'],
-                    ['Buffalo Bills', 'Miami Dolphins'],
-                    ['San Francisco 49ers', 'Los Angeles Rams'],
-                    ['New England Patriots', 'Buffalo Bills'],
-                    ['Las Vegas Raiders', 'Indianapolis Colts'],
-                ],
-            ];
-        } else {
-            $leagues = [
-                'Primera B Argentina',
-                'Primera C Argentina',
-                'Primera LPF, Reserves, Apertura',
-                'Torneo Regional Federal Juvenil Amateur Argentina',
-                'Liga Regional San Francisco, Sur Argentina',
-                'Division Plata 2A Aruba',
-                'EAFF East Asian Cup, Women, Qualification',
-                'ASEAN Championship U19, Group C',
-                'SAFF Women\'s Championship, Knockout stage',
-                'Capital NPL 1 Australia',
-                'Queensland NPL',
-                'Queensland NPL, Women',
-                'Queensland Premier League 1',
-                'NSW League Two',
-                'NSW U20 Premier League',
-                'Victoria Cup, Women',
-                'Northern NSW League One, Reserves, Women',
-                'Northern NSW NPL, Women',
-                'South Australia State League, Women',
-                'NPL Capital U23',
-                'West Australia - State League Div 2 Reserves',
-                'Western Australia Amateur Division 1',
-                'Regionalliga Ost',
-                'Regionalliga Mitte',
-                'Regionalliga West',
-                'OÖ Liga',
-                'II. Liga Burgenland, Mitte',
-                'Burgenland 1. Klasse - Nord',
-                'Gebietsliga Süd'
-            ];
-            $statusTeams = [
-                'upcoming' => [
-                    ['Sacachispas', 'Berazategui'],
-                    ['Chacarita Juniors Reserve', 'Deportivo Morón Reserve'],
-                    ['Colegiales Reserve', 'CA Estudiantes Caseros Reserves'],
-                    ['Club Almagro Reserve', 'Atlanta Reserve'],
-                    ['Estudiantes R', 'Rivadavia R'],
-                    ['Gimnasia De Mendoza Reserve', 'Gimnasia y Esgrima R'],
-                    ['Instituto Cordoba R', 'Atlético Tucumán R'],
-                    ['Rosario Central R', 'Racing R'],
-                    ['Platense Reserve', 'Lanús Reserve'],
-                    ['Talleres Reserve', 'Sarmiento Reserve'],
-                ],
-                'live' => [
-                    ['Boca Juniors Reserve', 'River Plate Reserve'],
-                    ['Newell\'s Old Boys Reserve', 'Banfield Reserve'],
-                    ['San Lorenzo Reserve', 'Vélez Sarsfield Reserve'],
-                    ['Godoy Cruz Reserve', 'Huracán Reserve'],
-                    ['Defensa y Justicia Reserve', 'Argentinos Juniors Reserve'],
-                    ['Patronato Reserve', 'Central Córdoba Reserve'],
-                    ['Unión Reserve', 'Barracas Central Reserve'],
-                    ['Aldosivi Reserve', 'Olimpo Reserve'],
-                    ['Santos Laguna Reserve', 'Pachuca Reserve'],
-                    ['Atlas Reserve', 'Monterrey Reserve'],
-                ],
-                'finished' => [
-                    ['Racing Reserve', 'San Martín Reserve'],
-                    ['Belgrano Reserve', 'Quilmes Reserve'],
-                    ['Tigre Reserve', 'Huracán Reserve'],
-                    ['Defensa y Justicia Reserve', 'Gimnasia Reserve'],
-                    ['Banfield Reserve', 'Sarmiento Reserve'],
-                    ['Rosario Central Reserve', 'Newell\'s Reserve'],
-                    ['River Plate Reserve', 'Boca Juniors Reserve'],
-                    ['Estudiantes Reserve', 'Lanús Reserve'],
-                    ['Argentinos Juniors Reserve', 'Vélez Sarsfield Reserve'],
-                    ['Colón Reserve', 'Aldosivi Reserve'],
-                ],
-            ];
+        if ($sport === 'football') {
+            return $this->getFootballFixtures();
         }
+
+        $fixtures = [];
+        $leagues = ['Domestic League', 'International Cup', 'Friendly'];
+        $statusTeams = [
+            'upcoming' => [
+                ['Team A', 'Team B'],
+                ['Team C', 'Team D'],
+                ['Team E', 'Team F'],
+                ['Team G', 'Team H'],
+                ['Team I', 'Team J'],
+                ['Team K', 'Team L'],
+                ['Team M', 'Team N'],
+                ['Team O', 'Team P'],
+                ['Team Q', 'Team R'],
+                ['Team S', 'Team T'],
+            ],
+            'live' => [
+                ['Team U', 'Team V'],
+                ['Team W', 'Team X'],
+                ['Team Y', 'Team Z'],
+                ['Team AA', 'Team BB'],
+                ['Team CC', 'Team DD'],
+                ['Team EE', 'Team FF'],
+                ['Team GG', 'Team HH'],
+                ['Team II', 'Team JJ'],
+                ['Team KK', 'Team LL'],
+                ['Team MM', 'Team NN'],
+            ],
+            'finished' => [
+                ['Team OO', 'Team PP'],
+                ['Team QQ', 'Team RR'],
+                ['Team SS', 'Team TT'],
+                ['Team UU', 'Team VV'],
+                ['Team WW', 'Team XX'],
+                ['Team YY', 'Team ZZ'],
+                ['Team AAA', 'Team BBB'],
+                ['Team CCC', 'Team DDD'],
+                ['Team EEE', 'Team FFF'],
+                ['Team GGG', 'Team HHH'],
+            ],
+        ];
 
         $statuses = ['upcoming', 'live', 'finished'];
         $idx = 1;
 
-        foreach($statuses as $status) {
-            for($i = 0; $i < 10; $i++) {
+        foreach ($statuses as $status) {
+            for ($i = 0; $i < 10; $i++) {
                 $pair = $statusTeams[$status][$i];
-                if($status === 'upcoming') {
+                if ($status === 'upcoming') {
                     $kickoffTime = date('Y-m-d H:i:s', strtotime('+' . ($i + 1) . ' hours'));
                     $homeScore = null;
                     $awayScore = null;
-                } elseif($status === 'live') {
+                } elseif ($status === 'live') {
                     $kickoffTime = date('Y-m-d H:i:s', strtotime('-' . rand(5, 55) . ' minutes'));
                     $homeScore = rand(0, 5);
                     $awayScore = rand(0, 5);
@@ -430,86 +264,11 @@ class BettingController extends Controller
                     $awayScore = rand(0, 6);
                 }
 
-                $odds = [];
-
-                if($sport === 'boxing') {
-                    $odds = [
-                        ['id' => $idx*30-29, 'fixture_id' => $idx, 'market' => 'moneyline', 'selection' => '1', 'odds_value' => round(rand(140, 240) / 100, 2)],
-                        ['id' => $idx*30-28, 'fixture_id' => $idx, 'market' => 'moneyline', 'selection' => 'X', 'odds_value' => round(rand(600, 900) / 100, 2)],
-                        ['id' => $idx*30-27, 'fixture_id' => $idx, 'market' => 'moneyline', 'selection' => '2', 'odds_value' => round(rand(160, 260) / 100, 2)],
-                        ['id' => $idx*30-26, 'fixture_id' => $idx, 'market' => 'rounds', 'selection' => 'O7.5', 'odds_value' => 1.95],
-                        ['id' => $idx*30-25, 'fixture_id' => $idx, 'market' => 'rounds', 'selection' => 'U7.5', 'odds_value' => 1.75],
-                        ['id' => $idx*30-24, 'fixture_id' => $idx, 'market' => 'rounds', 'selection' => 'O9.5', 'odds_value' => 2.45],
-                        ['id' => $idx*30-23, 'fixture_id' => $idx, 'market' => 'rounds', 'selection' => 'U9.5', 'odds_value' => 1.55],
-                        ['id' => $idx*30-22, 'fixture_id' => $idx, 'market' => 'method', 'selection' => 'KO/TKO', 'odds_value' => 1.88],
-                        ['id' => $idx*30-21, 'fixture_id' => $idx, 'market' => 'method', 'selection' => 'Decision', 'odds_value' => 2.10],
-                        ['id' => $idx*30-20, 'fixture_id' => $idx, 'market' => 'method', 'selection' => 'Draw', 'odds_value' => 9.50],
-                        ['id' => $idx*30-19, 'fixture_id' => $idx, 'market' => 'finish', 'selection' => 'Inside Distance', 'odds_value' => 1.72],
-                        ['id' => $idx*30-18, 'fixture_id' => $idx, 'market' => 'finish', 'selection' => 'Decision', 'odds_value' => 2.20],
-                    ];
-                } elseif($sport === 'american-football') {
-                    $odds = [
-                        ['id' => $idx*30-29, 'fixture_id' => $idx, 'market' => 'moneyline', 'selection' => '1', 'odds_value' => round(rand(140, 240) / 100, 2)],
-                        ['id' => $idx*30-28, 'fixture_id' => $idx, 'market' => 'moneyline', 'selection' => '2', 'odds_value' => round(rand(160, 270) / 100, 2)],
-                        ['id' => $idx*30-27, 'fixture_id' => $idx, 'market' => 'spread', 'selection' => '-3.5', 'odds_value' => 1.90],
-                        ['id' => $idx*30-26, 'fixture_id' => $idx, 'market' => 'spread', 'selection' => '+3.5', 'odds_value' => 1.95],
-                        ['id' => $idx*30-25, 'fixture_id' => $idx, 'market' => 'totals', 'selection' => 'O45.5', 'odds_value' => 1.92],
-                        ['id' => $idx*30-24, 'fixture_id' => $idx, 'market' => 'totals', 'selection' => 'U45.5', 'odds_value' => 1.88],
-                        ['id' => $idx*30-23, 'fixture_id' => $idx, 'market' => 'totals', 'selection' => 'O52.5', 'odds_value' => 2.05],
-                        ['id' => $idx*30-22, 'fixture_id' => $idx, 'market' => 'totals', 'selection' => 'U52.5', 'odds_value' => 1.82],
-                        ['id' => $idx*30-21, 'fixture_id' => $idx, 'market' => 'first_score', 'selection' => 'Touchdown', 'odds_value' => 1.70],
-                        ['id' => $idx*30-20, 'fixture_id' => $idx, 'market' => 'first_score', 'selection' => 'Field Goal', 'odds_value' => 2.25],
-                        ['id' => $idx*30-19, 'fixture_id' => $idx, 'market' => 'first_score', 'selection' => 'Safety', 'odds_value' => 8.50],
-                    ];
-                } else {
-                    $odds = array_merge(
-                        [
-                            ['id' => $idx*30-29, 'fixture_id' => $idx, 'market' => '1x2', 'selection' => '1', 'odds_value' => round(rand(150, 250) / 100, 2)],
-                            ['id' => $idx*30-28, 'fixture_id' => $idx, 'market' => '1x2', 'selection' => 'X', 'odds_value' => round(rand(300, 380) / 100, 2)],
-                            ['id' => $idx*30-27, 'fixture_id' => $idx, 'market' => '1x2', 'selection' => '2', 'odds_value' => round(rand(220, 450) / 100, 2)],
-                        ],
-                        array_map(function($sel) use ($idx) {
-                            return ['id' => $idx*30 + $sel['index'], 'fixture_id' => $idx, 'market' => 'totals', 'selection' => $sel['label'], 'odds_value' => $sel['value']];
-                        }, [
-                            ['index' => 1, 'label' => 'O0.5', 'value' => 1.35],
-                            ['index' => 2, 'label' => 'U0.5', 'value' => 1.12],
-                            ['index' => 3, 'label' => 'O1.5', 'value' => 1.65],
-                            ['index' => 4, 'label' => 'U1.5', 'value' => 1.25],
-                            ['index' => 5, 'label' => 'O2.5', 'value' => 2.10],
-                            ['index' => 6, 'label' => 'U2.5', 'value' => 1.66],
-                            ['index' => 7, 'label' => 'O3.5', 'value' => 3.45],
-                            ['index' => 8, 'label' => 'U3.5', 'value' => 1.26],
-                            ['index' => 9, 'label' => 'O4.5', 'value' => 4.80],
-                            ['index' => 10, 'label' => 'U4.5', 'value' => 1.12],
-                            ['index' => 11, 'label' => 'O5.5', 'value' => 7.20],
-                            ['index' => 12, 'label' => 'U5.5', 'value' => 1.08],
-                            ['index' => 13, 'label' => 'O6.5', 'value' => 11.50],
-                            ['index' => 14, 'label' => 'U6.5', 'value' => 1.05],
-                        ]),
-                        [
-                            ['id' => $idx*30+15, 'fixture_id' => $idx, 'market' => 'spread', 'selection' => '-3.5', 'odds_value' => 1.90],
-                            ['id' => $idx*30+16, 'fixture_id' => $idx, 'market' => 'spread', 'selection' => '+3.5', 'odds_value' => 1.95],
-                        ],
-                        [
-                            ['id' => $idx*30+15, 'fixture_id' => $idx, 'market' => 'btts', 'selection' => 'Yes', 'odds_value' => 1.75],
-                            ['id' => $idx*30+16, 'fixture_id' => $idx, 'market' => 'btts', 'selection' => 'No', 'odds_value' => 2.10],
-                        ],
-                        [
-                            ['id' => $idx*30+17, 'fixture_id' => $idx, 'market' => 'ht_score', 'selection' => '0-0', 'odds_value' => 4.20],
-                            ['id' => $idx*30+18, 'fixture_id' => $idx, 'market' => 'ht_score', 'selection' => '1-0', 'odds_value' => 4.60],
-                            ['id' => $idx*30+19, 'fixture_id' => $idx, 'market' => 'ht_score', 'selection' => '0-1', 'odds_value' => 5.00],
-                            ['id' => $idx*30+20, 'fixture_id' => $idx, 'market' => 'ht_score', 'selection' => '1-1', 'odds_value' => 5.50],
-                        ],
-                        [
-                            ['id' => $idx*30+21, 'fixture_id' => $idx, 'market' => 'ft_score', 'selection' => '1-0', 'odds_value' => 6.10],
-                            ['id' => $idx*30+22, 'fixture_id' => $idx, 'market' => 'ft_score', 'selection' => '0-1', 'odds_value' => 7.20],
-                            ['id' => $idx*30+23, 'fixture_id' => $idx, 'market' => 'ft_score', 'selection' => '1-1', 'odds_value' => 5.80],
-                            ['id' => $idx*30+24, 'fixture_id' => $idx, 'market' => 'ft_score', 'selection' => '2-1', 'odds_value' => 8.50],
-                            ['id' => $idx*30+25, 'fixture_id' => $idx, 'market' => 'ft_score', 'selection' => '1-2', 'odds_value' => 9.10],
-                            ['id' => $idx*30+26, 'fixture_id' => $idx, 'market' => 'ft_score', 'selection' => '2-2', 'odds_value' => 12.00],
-                        ]
-                    );
-                }
+                $odds = [
+                    ['id' => $idx * 3 + 1, 'fixture_id' => $idx, 'market' => '1x2', 'selection' => '1', 'odds_value' => round(rand(150, 250) / 100, 2)],
+                    ['id' => $idx * 3 + 2, 'fixture_id' => $idx, 'market' => '1x2', 'selection' => 'X', 'odds_value' => round(rand(300, 380) / 100, 2)],
+                    ['id' => $idx * 3 + 3, 'fixture_id' => $idx, 'market' => '1x2', 'selection' => '2', 'odds_value' => round(rand(220, 450) / 100, 2)],
+                ];
 
                 $fixtures[] = [
                     'id' => $idx,
@@ -523,10 +282,230 @@ class BettingController extends Controller
                     'away_score' => $awayScore,
                     'odds' => $odds,
                 ];
+
                 $idx++;
             }
         }
 
         return $fixtures;
+    }
+
+    private function getFootballFixtures($status = 'all')
+    {
+        $teamPairs = [
+            ['Sacachispas', 'Berazategui'],
+            ['Chacarita Juniors Reserve', 'Deportivo Morón Reserve'],
+            ['Colegiales Reserve', 'CA Estudiantes Caseros Reserves'],
+            ['Club Almagro Reserve', 'Atlanta Reserve'],
+            ['Estudiantes R', 'Rivadavia R'],
+            ['Gimnasia De Mendoza Reserve', 'Gimnasia y Esgrima R'],
+            ['Instituto Cordoba R', 'Atlético Tucumán R'],
+            ['Rosario Central R', 'Racing R'],
+            ['Platense Reserve', 'Lanús Reserve'],
+            ['Talleres Reserve', 'Sarmiento Reserve'],
+            ['Barracas Central', 'San Martin'],
+            ['Quilmes', 'Defensa y Justicia'],
+            ['Velez Sarsfield', 'Union Santa Fe'],
+        ];
+
+        $leagues = ['Premier League', 'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1', 'MLS', 'Eredivisie'];
+        $matchDuration = 105 * 60;
+        $startOfDay = strtotime(date('Y-m-d 00:00:00'));
+        $now = time();
+
+        $fixtures = [];
+
+        for ($i = 0; $i < 13; $i++) {
+            $matchStart = $startOfDay + ($i * $matchDuration);
+            $elapsed = $now - $matchStart;
+            $status = $this->getFootballMatchStatus($elapsed);
+            $scores = $this->buildFootballScore($i + 1, $elapsed);
+            $stageText = $this->buildFootballStageText($elapsed);
+
+            $fixtures[] = [
+                'id' => $i + 1,
+                'sport' => 'football',
+                'league' => $leagues[$i % count($leagues)],
+                'home_team' => $teamPairs[$i % count($teamPairs)][0],
+                'away_team' => $teamPairs[$i % count($teamPairs)][1],
+                'kickoff_time' => date('Y-m-d H:i:s', $matchStart),
+                'status' => $status,
+                'stage_text' => $stageText,
+                'home_score' => $scores['home'],
+                'away_score' => $scores['away'],
+                'odds' => $this->buildFootballOdds($i + 1),
+            ];
+        }
+
+        if ($status !== 'all') {
+            $fixtures = array_values(array_filter($fixtures, function ($fixture) use ($status) {
+                return $fixture['status'] === $status;
+            }));
+        }
+
+        return $fixtures;
+    }
+
+    private function getFootballFixtureById($fixtureId)
+    {
+        $fixtures = $this->getFootballFixtures('all');
+        foreach ($fixtures as $fixture) {
+            if ($fixture['id'] == $fixtureId) {
+                return $fixture;
+            }
+        }
+        return null;
+    }
+
+    private function getFootballMatchStatus($elapsed)
+    {
+        if ($elapsed < 0) {
+            return 'upcoming';
+        }
+
+        if ($elapsed < 105 * 60) {
+            return 'live';
+        }
+
+        return 'finished';
+    }
+
+    private function buildFootballStageText($elapsed)
+    {
+        if ($elapsed < 0) {
+            return 'Kickoff in ' . gmdate('G\h i\m', abs($elapsed));
+        }
+
+        if ($elapsed < 45 * 60) {
+            return '1st Half • ' . max(1, floor($elapsed / 60)) . "'";
+        }
+
+        if ($elapsed < 60 * 60) {
+            return 'Half Time';
+        }
+
+        if ($elapsed < 105 * 60) {
+            return '2nd Half • ' . max(1, floor(($elapsed - 60 * 60) / 60)) . "'";
+        }
+
+        return 'Full Time';
+    }
+
+    private function seededFootballValue($seed, $min, $max)
+    {
+        $value = crc32($seed);
+        return $min + ($value % ($max - $min + 1));
+    }
+
+    private function buildFootballScore($fixtureId, $elapsed)
+    {
+        if ($elapsed < 0) {
+            return ['home' => null, 'away' => null];
+        }
+
+        $homeFinal = $this->seededFootballValue("football-final-home-{$fixtureId}-" . date('Y-m-d'), 0, 4);
+        $awayFinal = $this->seededFootballValue("football-final-away-{$fixtureId}-" . date('Y-m-d'), 0, 4);
+
+        $homeHalf = min($homeFinal, max(0, (int) floor($homeFinal * 0.45)));
+        $awayHalf = min($awayFinal, max(0, (int) floor($awayFinal * 0.45)));
+
+        if ($elapsed < 45 * 60) {
+            return [
+                'home' => min($homeFinal, (int) floor($homeFinal * ($elapsed / (45 * 60)))),
+                'away' => min($awayFinal, (int) floor($awayFinal * ($elapsed / (45 * 60)))),
+            ];
+        }
+
+        if ($elapsed < 60 * 60) {
+            return ['home' => $homeHalf, 'away' => $awayHalf];
+        }
+
+        if ($elapsed < 105 * 60) {
+            $secondElapsed = $elapsed - 60 * 60;
+            return [
+                'home' => min($homeFinal, $homeHalf + (int) floor(($homeFinal - $homeHalf) * ($secondElapsed / (45 * 60)))),
+                'away' => min($awayFinal, $awayHalf + (int) floor(($awayFinal - $awayHalf) * ($secondElapsed / (45 * 60)))),
+            ];
+        }
+
+        return ['home' => $homeFinal, 'away' => $awayFinal];
+    }
+
+    private function buildFootballOdds($fixtureId)
+    {
+        $seed = crc32("football-odds-{$fixtureId}-" . date('Y-m-d'));
+        $homePrice = round(1.60 + ($seed % 80) / 100, 2);
+        $drawPrice = round(2.80 + (($seed >> 4) % 60) / 100, 2);
+        $awayPrice = round(2.10 + (($seed >> 8) % 90) / 100, 2);
+
+        return [
+            ['id' => $fixtureId * 3 + 1, 'fixture_id' => $fixtureId, 'market' => '1x2', 'selection' => '1', 'odds_value' => $homePrice],
+            ['id' => $fixtureId * 3 + 2, 'fixture_id' => $fixtureId, 'market' => '1x2', 'selection' => 'X', 'odds_value' => $drawPrice],
+            ['id' => $fixtureId * 3 + 3, 'fixture_id' => $fixtureId, 'market' => '1x2', 'selection' => '2', 'odds_value' => $awayPrice],
+        ];
+    }
+
+    private function evaluateBetAgainstFixture($bet, $fixtureData)
+    {
+        if (!$fixtureData) {
+            return ['status' => $bet->status, 'message' => null];
+        }
+
+        $status = is_array($fixtureData) ? $fixtureData['status'] : $fixtureData->status;
+        if ($status !== 'finished') {
+            return ['status' => $bet->status, 'message' => null];
+        }
+
+        $homeScore = is_array($fixtureData) ? $fixtureData['home_score'] : $fixtureData->home_score;
+        $awayScore = is_array($fixtureData) ? $fixtureData['away_score'] : $fixtureData->away_score;
+        $homeScore = (int) $homeScore;
+        $awayScore = (int) $awayScore;
+
+        $actualFt = "{$homeScore}-{$awayScore}";
+        $actualHt = $this->getFootballHalfTimeScore($fixtureData);
+
+        $won = false;
+        $message = 'Final result: ' . $actualFt;
+
+        switch ($bet->market) {
+            case 'ft_score':
+                $won = $bet->selection === $actualFt;
+                break;
+            case 'ht_score':
+                $won = $bet->selection === $actualHt;
+                break;
+            case '1x2':
+                $result = $homeScore === $awayScore ? 'X' : ($homeScore > $awayScore ? '1' : '2');
+                $won = $bet->selection === $result;
+                break;
+            case 'btts':
+                $won = ($bet->selection === 'Yes' && $homeScore > 0 && $awayScore > 0)
+                    || ($bet->selection === 'No' && ($homeScore === 0 || $awayScore === 0));
+                break;
+            default:
+                if (strpos($bet->market, 'totals') === 0) {
+                    $threshold = floatval(substr($bet->selection, 1));
+                    $total = $homeScore + $awayScore;
+                    if ($bet->selection[0] === 'O') {
+                        $won = $total > $threshold;
+                    } else {
+                        $won = $total < $threshold;
+                    }
+                }
+                break;
+        }
+
+        if ($won) {
+            $message = 'Congratulations! Correct score prediction.';
+        }
+
+        return ['status' => $won ? 'won' : 'lost', 'message' => $message];
+    }
+
+    private function getFootballHalfTimeScore($fixtureData)
+    {
+        $fixtureId = is_array($fixtureData) ? $fixtureData['id'] : $fixtureData->id;
+        $scores = $this->buildFootballScore($fixtureId, 45 * 60);
+        return "{$scores['home']}-{$scores['away']}";
     }
 }

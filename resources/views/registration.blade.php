@@ -170,8 +170,13 @@
                            </div>
                            <!-- reCAPTCHA Widget -->
                            <div class="form-group">
-                               <div class="g-recaptcha" data-sitekey="6Ld6sQEtAAAAAHhzrfRNKJThTwbrM6uX1Y1Ihh5P"></div>
-                           </div>
+                                 <div class="checkbox">
+                                    <input id="checkbox1" type="checkbox" required>
+                                    <label for="checkbox1">
+                                    I am at least 18 years old and have read & accept the Terms and Conditions, Privacy Policy, Betting Rules & Responsible Gaming.
+                                    </label>
+                                 </div>
+                              </div>
                         </div>
                         <div class="clearfix"></div>
                         <input type="hidden" name="_token" value="{{ csrf_token() }}"/>
@@ -192,7 +197,5 @@ function check_validation()
     $("#registration").validationEngine();
 }
 </script>
-<!-- Google reCAPTCHA API -->
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 @include('footer')
 @include('footer_link')

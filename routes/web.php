@@ -47,9 +47,10 @@ Route::get('/api/fixtures','BettingController@getFixtures');
 Route::post('/api/bet/place','BettingController@placeBet');
 Route::get('/api/bet/slip','BettingController@getBetSlip');
 Route::post('/api/bet/remove','BettingController@removeBet');
-Route::post('/api/bet/submit','BettingController@submitBetSlip');Route::post('/search-username','NewsFeedController@SearchByUsername');//-----newsfeed start-----------//
+Route::post('/api/bet/submit','BettingController@submitBetSlip');
+Route::post('/search-username','NewsFeedController@SearchByUsername');//-----newsfeed start-----------//
 //Route::post('/preregdata','LandingPageController@PreRegistration');
-//Route::get('register', ['uses'=>'RegistrationController@Register','as'=>'Register']);
+Route::get('/register', ['uses'=>'RegistrationController@Register','as'=>'Register']);
 Route::get('/test-upload','testing@index');
 Route::get('/post-upload','testing@postUpload');
 ?>
