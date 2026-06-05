@@ -42,8 +42,8 @@ $(document).ready(function(){
 				  	 	   <div class="login_form col-md-8 col-md-offset-2">
 				              <form id="login" action="javascript:void(0);" method="post" autocomplete="off" onsubmit="loginFormSubmit()">
 				                  <div class="form-group">
-				                    <label>Username</label>
-				                    <input class="form-control validate[required]" type="text" placeholder="Enter Username " name="user_name"/>
+				                    <label>Email</label>
+				                    <input class="form-control validate[required,custom[email]]" type="text" placeholder="Enter Email" name="email"/>
 				                  </div>
 				                  <div class="form-group">
 				                    <label>Password</label>
@@ -657,18 +657,18 @@ function ResetFormForgotPassword()
 function submitRegistrationForm()
 {
     // Get form data
-    const name = $('input[name="name"]').val();
-    const user_name = $('input[name="user_name"]').last().val();
-    const email = $('input[name="email"]').val();
-    const age_group = $('[name="age_group"]').val();
-    const password = $('input[name="password"]').last().val();
-    const gender = $('input[name="gender"]:checked').val();
-    const currency = $('input[name="currency"]:checked').val();
-    const country = $('[name="country"]').val();
-    const city = $('input[name="city"]').val();
-    const country_code = $('[name="country_code"]').val();
-    const contact_no = $('input[name="contact_no"]').val();
-    const terms = $('input[name="checkbox1"]:checked').length;
+    const name = $('#registration input[name="name"]').val();
+    const user_name = $('#registration input[name="user_name"]').val();
+    const email = $('#registration input[name="email"]').val();
+    const age_group = $('#registration select[name="age_group"]').val();
+    const password = $('#registration input[name="password"]').val();
+    const gender = $('#registration input[name="gender"]:checked').val();
+    const currency = $('#registration input[name="currency"]:checked').val();
+    const country = $('#registration select[name="country"]').val();
+    const city = $('#registration input[name="city"]').val();
+    const country_code = $('#registration select[name="country_code"]').val();
+    const contact_no = $('#registration input[name="contact_no"]').val();
+    const terms = $('#registration input[name="checkbox1"]:checked').length;
     
     // Simple validation
     if (!name || !user_name || !email || !password || !age_group || !gender || !currency || !country || !city || !contact_no || terms === 0) {

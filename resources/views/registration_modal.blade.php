@@ -1,4 +1,5 @@
 <script src="{{asset('assets/front_end/css/Style.css')}}" type="text/javascript"></script>
+@include('common/header_link')
 <!-- Registration Content -->
 <div class="registration_form"> 
 <div class="col-md-10 col-md-offset-1"> 

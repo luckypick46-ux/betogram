@@ -12,8 +12,8 @@
 	}, 3000);
 });*/
 </script>
-@include('header_link')
-@include('unregister_header')
+@include('common/header_link')
+@include('common/unregister_header')
 <!-- Page body content -->
 <div class="logincontant">
    <div class="container ">
@@ -91,12 +91,13 @@
                            <div class="row">
                               <div class="col-md-4">
                                  <div class="form-group">
-                                    <select class=" AgeGroup selectpicker" name="country_code">
-                                       <option>Code</option>
-                                       <option value="+91">+91</option>
-                                       <option value="+001">+001</option>
-                                       <option value="+117">+117</option>
-                                       <option value="+0088">+0088</option>
+                                    <select class=" AgeGroup selectpicker validate[required]" name="country_code" id="countryCode" data-live-search="true">
+                                       <option value="">Code</option>
+                                       @if(isset($get_country) && count($get_country) > 0)
+                                           @foreach($get_country as $country)
+                                               <option value="{{ $country->phonecode }}">+{{ $country->phonecode }}</option>
+                                           @endforeach
+                                       @endif
                                     </select>
                                  </div>
                               </div>
@@ -147,12 +148,13 @@
                               </div>
                            </div>
                            <div class="form-group">
-                              <select class=" AgeGroup selectpicker" name="country">
-                                 <option value="India">India</option>
-                                 <option value="Australia">Australia</option>
-                                 <option value="USA">USA</option>
-                                 <option value="UK">UK</option>
-                                 <option value="Germany">Germany</option>
+                              <select class=" AgeGroup selectpicker validate[required]" name="country" id="country" onchange="SelectCountry(this.value)" data-live-search="true">
+                                 <option value="">Select Country</option>
+                                 @if(isset($get_country) && count($get_country) > 0)
+                                     @foreach($get_country as $country)
+                                         <option value="{{ $country->id }}">{{ $country->name }}</option>
+                                     @endforeach
+                                 @endif
                               </select>
                            </div>
                            <div class="form-group">
@@ -196,6 +198,26 @@ function check_validation()
     //alert('sumit');
     $("#registration").validationEngine();
 }
+
+function SelectCountry(country_id)
+{
+    if (!country_id) {
+        return;
+    }
+    $.ajax({
+        type: "POST",
+        url: "{{url('getCountryCode')}}",
+        headers: {
+          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        data: {'countryId':country_id},
+        success: function(result)
+        {
+            $("#countryCode").html(result);
+            $('.selectpicker').selectpicker('refresh');
+        }
+    });
+}
 </script>
-@include('footer')
-@include('footer_link')
+@include('common/footer')
+@include('common/footer_link')

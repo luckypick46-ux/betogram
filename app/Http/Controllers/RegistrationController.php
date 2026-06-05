@@ -7,6 +7,8 @@ use App\Users;
 use App\Product;
 use App\Security_questions;
 use App\cms_email_templates;
+use App\Countries;
+use App\Helpers\CountryList;
 use Mail;
 use Session;
 
@@ -28,8 +30,17 @@ class RegistrationController extends Controller
         /*Mail::raw('Welcome to betogram', function ($message) {
             $message->to('sumit.wgt@gmail.com')->subject('Welcome Mail');
         });*/
-        $records = Security_questions::where('status', 1)->get();
-        return view('registration')->with('records',$records);
+        try {
+            $records = Security_questions::where('status', 1)->get();
+        } catch (\Exception $e) {
+            $records = collect([]);
+        }
+        try {
+            $get_country = Countries::get();
+        } catch (\Exception $e) {
+            $get_country = CountryList::all();
+        }
+        return view('registration')->with('records',$records)->with('get_country',$get_country);
     }
     
     public function getRegister(Request $request)
@@ -48,13 +59,14 @@ class RegistrationController extends Controller
         }
 
         if ($verifyCaptcha) {
+            $passwordHash = md5($request->input('password'));
             $data = array(
                 'profile_id' => null,
                 'user_name' => $request->input('user_name'),
                 'name' => $request->input('name'),
                 'email' => $request->input('email'),
                 'age_group' => $request->input('age_group'),
-                'password' => md5($request->input('password')),
+                'password' => $passwordHash,
                 'gender' => $request->input('gender'),
                 'country_id' => $request->input('country'),
                 'country_code' => $request->input('country_code'),
@@ -97,12 +109,25 @@ class RegistrationController extends Controller
                         $message->to($email)->subject($records[0]['subject']);
                     });
                 }
-                echo "success";
+
+                if ($request->ajax()) {
+                    echo "success";
+                } else {
+                    return redirect(url('home'));
+                }
             } else {
-                echo "failed";
+                if ($request->ajax()) {
+                    echo "failed";
+                } else {
+                    return redirect()->back()->with('status', 'Registration failed. Please try again.');
+                }
             }
         } else {
-            echo "error1";
+            if ($request->ajax()) {
+                echo "error1";
+            } else {
+                return redirect()->back()->with('status', 'Please complete the reCAPTCHA.');
+            }
         }
     }
 
@@ -117,9 +142,11 @@ class RegistrationController extends Controller
                 'user_name' => $userData['user_name'],
                 'name' => $userData['name'],
                 'email' => $userData['email'],
+                'password' => $userData['password'],
                 'age_group' => $userData['age_group'],
                 'gender' => $userData['gender'],
                 'country_id' => $userData['country_id'],
+                'country_code' => $userData['country_code'],
                 'contact_no' => $userData['contact_no'],
                 'currency' => $userData['currency'],
                 'city' => $userData['city'],
@@ -164,9 +191,9 @@ class RegistrationController extends Controller
     
     public function getLogin(Request $request)
     {
-        $username = $request->input('user_name');
+        $email = $request->input('email');
         $password = md5($request->input('password'));
-        $user = Users::where('user_name',$username)->where('password',$password)->first();
+        $user = Users::where('email', $email)->where('password', $password)->first();
 
         if ($user) {
             if ($user->status == 1) {
