@@ -1,4 +1,4 @@
-<script src="{{asset('assets/front_end/css/Style.css')}}" type="text/javascript"></script>
+<link rel="stylesheet" href="{{ asset('assets/front_end/css/Style.css') }}">
 <script type="text/javascript">
 /*$(document).ready(function(){
 	setTimeout(function() {
