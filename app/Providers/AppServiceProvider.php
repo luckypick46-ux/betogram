@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\URL;
-use Illuminate\Support\Facades\Str;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
             $forceHttps = true;
         }
 
-        if (env('APP_URL') && Str::startsWith(env('APP_URL'), 'https://')) {
+        if (env('APP_URL') && strpos(env('APP_URL'), 'https://') === 0) {
             $forceHttps = true;
         }
 
