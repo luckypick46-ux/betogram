@@ -242,7 +242,7 @@ $(document).ready(function(){
 		           	 </div>
                      <input type="hidden" name="_token" id="csrf_token" value="{{ csrf_token() }}"/>
 		           	 <div class="col-md-6 col-sm-6 col-xs-6">
-		           	  <button class="submit" type="button" id="register" onclick="submitRegistrationForm()">Create</button>
+		           	  <button class="submit" type="button" id="register" onclick="formSubmit()">Create</button>
 		             </div>
 	           	 </div>
 			   </form>
@@ -318,6 +318,22 @@ $(document).ready(function(){
 </div>
 <!--forgot password modal end-->
 @include('common/footer_link')
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script>
+    var firebaseConfig = {
+        apiKey: "{{ env('FIREBASE_API_KEY') }}",
+        authDomain: "{{ env('FIREBASE_AUTH_DOMAIN') }}",
+        databaseURL: "{{ env('FIREBASE_DATABASE_URL') }}",
+        projectId: "{{ env('FIREBASE_PROJECT_ID') }}",
+        storageBucket: "{{ env('FIREBASE_STORAGE_BUCKET') }}",
+        messagingSenderId: "{{ env('FIREBASE_MESSAGING_SENDER_ID') }}",
+        appId: "{{ env('FIREBASE_APP_ID') }}",
+        measurementId: "{{ env('FIREBASE_MEASUREMENT_ID') }}"
+    };
+    firebase.initializeApp(firebaseConfig);
+</script>
+
 <script type="text/javascript">
 $(document).ready(function(){
 	setTimeout(function() {
@@ -499,21 +515,15 @@ function formSubmit()
             {
                 //console.log(result);
                 $('#register').removeAttr('disabled');
-                if(result == "success") {
-                    $("#captcha_error").html('').fadeOut('slow');
-                    var emaiId = $("#email").val();
-                    $("#UserEmailId").html('');
-                    $("#UserEmailId").html(emaiId);
-                    $("#body_loader").hide();
-                    openSuccessModal();
-                    
-                    // Auto-login and redirect to home after 3 seconds
-                    setTimeout(function() {
-                        window.location.href = "{{url('home')}}";
-                    }, 3000);
-                } else if(result == "error1" || result == "error2") {
+                if (typeof result === 'string' && $.trim(result) === "success") {
+                    window.location.href = "{{url('home')}}";
+                } else if (result == "error1" || result == "error2") {
                     $("#body_loader").hide();
                     $("#captcha_error").html('Please select Re-Captcha').fadeIn('slow');
+                } else {
+                    $("#register").removeAttr('disabled');
+                    $("#body_loader").hide();
+                    alert('Registration failed. Please try again.');
                 }
             }
         });
@@ -617,120 +627,59 @@ function CheckUserEmailForForgotPass(emailid)
         $("#forgotpass_btn").prop('disabled', 'true');
     }
 }
-function ForgotPasswordFormSubmit()
+function loginFormSubmit()
 {
-    var recovery_type = $("#recovery_email").val();
-    var email_id = $("#UserEmail").val();
-    var valid = $("#forgotPass").validationEngine('validate');
-    if (valid == true) 
-    {
-        $("#forgotpass_btn").prop('disabled', 'true');
-        $("#loader_forgotPass_modal").show();
-        $.ajax({
-                type: "POST",
-                url: "{{url('forgot-pass-mail')}}",
-                headers: {
-                  'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                data: $("#forgotPass").serialize(),
-                success: function(result)
-                {
-                    if(result == "success")
-                    {
-                        $("#loader_forgotPass_modal").hide();
-                        location.reload();
-                    }
-                }
+    var valid = $("#login").validationEngine('validate');
+    if (valid == true) {
+        $("#login_button").prop('disabled', 'true');
+        var email = $("#login input[name='email']").val();
+        var password = $("#login input[name='password']").val();
+
+        firebase.auth().signInWithEmailAndPassword(email, password)
+        .then(function(userCredential) {
+            return userCredential.user.getIdToken().then(function(idToken) {
+                $.ajax({
+                   type: "POST",
+                   url: "{{url('firebase-login')}}",
+                   headers: {
+                      'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                   },
+                   data: { idToken: idToken },
+                   success: function(result) {
+                       if (result == 0 || result == '0') {
+                           window.location.href = "{{url('home')}}";
+                       } else if (result == 1 || result == '1') {
+                           window.location.href = "{{url('change-password')}}";
+                       } else if (result == 'inactive') {
+                           location.reload();
+                       } else {
+                           // fallback to legacy server-side login
+                           $.ajax({
+                               type: "POST",
+                               url: "{{url('getlogindata')}}",
+                               headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                               data: $("#login").serialize(),
+                               success: function(res) { location.reload(); }
+                           });
+                       }
+                   },
+                   error: function() { alert('Server error while logging in.'); $('#login_button').removeAttr('disabled'); }
+                });
+            });
+        })
+        .catch(function(error) {
+            // Try legacy server login as fallback
+            $.ajax({
+               type: "POST",
+               url: "{{url('getlogindata')}}",
+               headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+               data: $("#login").serialize(),
+               success: function(result) { if(result == 0){ window.location.href = "{{url('home')}}"; } else { location.reload(); } }
+           });
         });
     } else {
-        $('#forgotpass_btn').removeAttr('disabled');
-        $("#forgotPass").validationEngine();
+        $('#login_button').removeAttr('disabled');
+        $("#login").validationEngine();
     }
-}
-function ResetFormForgotPassword()
-{
-    $('#forgotPass')[0].reset();
-    $('.selectpicker').selectpicker('refresh');
-    $(".formError").remove()
-}
-
-function submitRegistrationForm()
-{
-    // Get form data
-    const name = $('#registration input[name="name"]').val();
-    const user_name = $('#registration input[name="user_name"]').val();
-    const email = $('#registration input[name="email"]').val();
-    const age_group = $('#registration select[name="age_group"]').val();
-    const password = $('#registration input[name="password"]').val();
-    const gender = $('#registration input[name="gender"]:checked').val();
-    const currency = $('#registration input[name="currency"]:checked').val();
-    const country = $('#registration select[name="country"]').val();
-    const city = $('#registration input[name="city"]').val();
-    const country_code = $('#registration select[name="country_code"]').val();
-    const contact_no = $('#registration input[name="contact_no"]').val();
-    const terms = $('#registration input[name="checkbox1"]:checked').length;
-    
-    // Simple validation
-    if (!name || !user_name || !email || !password || !age_group || !gender || !currency || !country || !city || !contact_no || terms === 0) {
-        alert('Please fill all required fields');
-        return;
-    }
-    
-    if (password.length < 5) {
-        alert('Password must be at least 5 characters');
-        return;
-    }
-    
-    // Disable button and show loader
-    $("#register").prop('disabled', 'true');
-    $("#body_loader").show();
-    
-    // Submit via AJAX
-    $.ajax({
-        type: "POST",
-        url: "{{url('getRegister')}}",
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        },
-        data: {
-            name: name,
-            user_name: user_name,
-            email: email,
-            age_group: age_group,
-            password: password,
-            gender: gender,
-            currency: currency,
-            country: country,
-            city: city,
-            country_code: country_code,
-            contact_no: contact_no
-        },
-        success: function(result) {
-            $("#register").removeAttr('disabled');
-            if (result == "success") {
-                $("#captcha_error").html('').fadeOut('slow');
-                const emailId = email;
-                $("#UserEmailId").html(emailId);
-                $("#body_loader").hide();
-                openSuccessModal();
-                
-                // Redirect to home after 3 seconds
-                setTimeout(function() {
-                    window.location.href = "{{url('home')}}";
-                }, 3000);
-            } else if (result == "error1" || result == "error2") {
-                $("#body_loader").hide();
-                alert('Please select Re-Captcha');
-            } else if (result == "failed") {
-                $("#body_loader").hide();
-                alert('Registration failed. Please try again.');
-            }
-        },
-        error: function(xhr, status, error) {
-            $("#register").removeAttr('disabled');
-            $("#body_loader").hide();
-            alert('An error occurred: ' + error);
-        }
-    });
 }
 </script>

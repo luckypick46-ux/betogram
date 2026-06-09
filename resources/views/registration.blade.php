@@ -74,10 +74,10 @@
                         </div>
                         <div class="col-md-6">
                            <div class="form-group">
-                              <input class="form-control validate[required]" type="Password" placeholder="Password" name="password" onkeyup="passwordStrength(this.value);"/>
+                              <input id="password" class="form-control validate[required]" type="Password" placeholder="Password" name="password" onkeyup="passwordStrength(this.value);"/>
                            </div>
                            <div class="form-group">
-                              <input class="form-control validate[required,equals[password]]" type="Password" placeholder="Confirm Password" name="cpassword"/>
+                              <input id="cpassword" class="form-control validate[required,equals[password]]" type="Password" placeholder="Confirm Password" name="cpassword"/>
                            </div>
                         </div>
                         <!--div class="col-md-6"--> 
@@ -182,7 +182,7 @@
                         </div>
                         <div class="clearfix"></div>
                         <input type="hidden" name="_token" value="{{ csrf_token() }}"/>
-                        <p><button type="submit" onclick="check_validation()">Create Betogram Account </button></p>
+                        <p><button type="button" onclick="submitRegistrationFormFirebase()">Create Betogram Account </button></p>
                     </form>
                   </div>
                </div>
@@ -221,3 +221,77 @@ function SelectCountry(country_id)
 </script>
 @include('common/footer')
 @include('common/footer_link')
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script>
+   var firebaseConfig = {
+      apiKey: "{{ env('FIREBASE_API_KEY') }}",
+      authDomain: "{{ env('FIREBASE_AUTH_DOMAIN') }}",
+      databaseURL: "{{ env('FIREBASE_DATABASE_URL') }}",
+      projectId: "{{ env('FIREBASE_PROJECT_ID') }}",
+      storageBucket: "{{ env('FIREBASE_STORAGE_BUCKET') }}",
+      messagingSenderId: "{{ env('FIREBASE_MESSAGING_SENDER_ID') }}",
+      appId: "{{ env('FIREBASE_APP_ID') }}",
+      measurementId: "{{ env('FIREBASE_MEASUREMENT_ID') }}"
+   };
+   firebase.initializeApp(firebaseConfig);
+
+   function submitRegistrationFormFirebase()
+   {
+      const form = $("#registration");
+      var valid = form.validationEngine('validate');
+      if (!valid) return;
+
+      const name = form.find('input[name="name"]').val();
+      const user_name = form.find('input[name="user_name"]').val();
+      const email = form.find('input[name="email"]').val();
+      const password = form.find('input[name="password"]').val();
+      const age_group = form.find('select[name="age_group"]').val();
+      const gender = form.find('input[name="gender"]:checked').val();
+      const currency = form.find('input[name="currency"]:checked').val();
+      const country = form.find('select[name="country"]').val();
+      const city = form.find('input[name="city"]').val();
+      const country_code = form.find('select[name="country_code"]').val();
+      const contact_no = form.find('input[name="contact_no"]').val();
+
+      $("#body_loader").show();
+
+      firebase.auth().createUserWithEmailAndPassword(email, password)
+      .then(function(userCredential) {
+         return userCredential.user.getIdToken().then(function(idToken) {
+            $.ajax({
+               type: 'POST',
+               url: '{{ url('firebase-register') }}',
+               headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+               data: {
+                  idToken: idToken,
+                  name: name,
+                  user_name: user_name,
+                  email: email,
+                  age_group: age_group,
+                  password: password,
+                  gender: gender,
+                  currency: currency,
+                  country: country,
+                  city: city,
+                  country_code: country_code,
+                  contact_no: contact_no
+               },
+               success: function(res) {
+                  $("#body_loader").hide();
+                  if (typeof res === 'string' && $.trim(res) === 'success') {
+                     window.location.href = '{{ url('home') }}';
+                  } else {
+                     alert('Registration failed on server.');
+                  }
+               },
+               error: function() { $("#body_loader").hide(); alert('Server error.'); }
+            });
+         });
+      })
+      .catch(function(error) {
+         $("#body_loader").hide();
+         alert('Firebase error: ' + error.message);
+      });
+   }
+</script>

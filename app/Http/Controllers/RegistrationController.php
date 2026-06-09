@@ -111,20 +111,20 @@ class RegistrationController extends Controller
                 }
 
                 if ($request->ajax()) {
-                    echo "success";
+                    return response('success');
                 } else {
                     return redirect(url('home'));
                 }
             } else {
                 if ($request->ajax()) {
-                    echo "failed";
+                    return response('failed');
                 } else {
                     return redirect()->back()->with('status', 'Registration failed. Please try again.');
                 }
             }
         } else {
             if ($request->ajax()) {
-                echo "error1";
+                return response('error1');
             } else {
                 return redirect()->back()->with('status', 'Please complete the reCAPTCHA.');
             }
@@ -209,6 +209,156 @@ class RegistrationController extends Controller
             $request->session()->flash('status', 'Please try again');
             echo "failed";
         }
+    }
+
+    /**
+     * Verify Firebase ID token using REST accounts:lookup
+     * Returns decoded response array or null on failure
+     */
+    private function verifyFirebaseIdToken($idToken)
+    {
+        try {
+            $apiKey = env('FIREBASE_API_KEY');
+            if (!$apiKey || !$idToken) return null;
+            $url = "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={$apiKey}";
+            $payload = json_encode(['idToken' => $idToken]);
+            $context = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => "Content-Type: application/json\r\n",
+                    'content' => $payload,
+                    'timeout' => 5
+                ]
+            ]);
+            $result = @file_get_contents($url, false, $context);
+            if (!$result) return null;
+            $data = json_decode($result, true);
+            return $data;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    // Endpoint used by client after Firebase registration to create / login local user
+    public function firebaseRegister(Request $request)
+    {
+        $idToken = $request->input('idToken');
+        $verify = $this->verifyFirebaseIdToken($idToken);
+        if (!$verify || empty($verify['users'])) {
+            return response('failed', 400);
+        }
+
+        $firebaseUser = $verify['users'][0];
+        $email = isset($firebaseUser['email']) ? $firebaseUser['email'] : null;
+        if (!$email || $email !== $request->input('email')) {
+            return response('failed', 400);
+        }
+
+        // Check if user exists locally
+        $existing = Users::where('email', $email)->first();
+        if ($existing) {
+            Session::put('user_id', $existing->id);
+            return response('success');
+        }
+
+        // Create local user similar to getRegister
+        $data = array(
+            'profile_id' => null,
+            'user_name' => $request->input('user_name') ?: $email,
+            'name' => $request->input('name') ?: $firebaseUser['displayName'] ?? $email,
+            'email' => $email,
+            'age_group' => $request->input('age_group') ?: null,
+            'password' => md5($request->input('password') ?: str_random(8)),
+            'gender' => $request->input('gender') ?: null,
+            'country_id' => $request->input('country') ?: null,
+            'country_code' => $request->input('country_code') ?: null,
+            'contact_no' => $request->input('contact_no') ?: null,
+            'currency' => $request->input('currency') ?: null,
+            'city' => $request->input('city') ?: null,
+            'activation_code' => '',
+            'random_code' => uniqid(rand(), true),
+            'status' => '1',
+            'creation_date' => date("Y-m-d H:i:s"),
+            'updation_date' => date("Y-m-d H:i:s"),
+            'user_type' => 2,
+            'roles_id' => null,
+            'social_media_id' => null,
+            'subscription_type' => 0,
+            'forgot_pass' => 0
+        );
+
+        $inserted = Users::insert($data);
+        if ($inserted) {
+            $newUser = Users::where('email', $email)->first();
+            if ($newUser) {
+                Session::put('user_id', $newUser->id);
+            }
+            // Save to Firebase Realtime DB as existing function does (best-effort)
+            $this->saveUserToFirebase($data);
+            return response('success');
+        }
+
+        return response('failed', 500);
+    }
+
+    // Endpoint used by client after Firebase sign-in to log user into local session
+    public function firebaseLogin(Request $request)
+    {
+        $idToken = $request->input('idToken');
+        $verify = $this->verifyFirebaseIdToken($idToken);
+        if (!$verify || empty($verify['users'])) {
+            return response('failed', 400);
+        }
+        $firebaseUser = $verify['users'][0];
+        $email = isset($firebaseUser['email']) ? $firebaseUser['email'] : null;
+        if (!$email) return response('failed', 400);
+
+        $user = Users::where('email', $email)->first();
+        if ($user) {
+            if ($user->status == 1) {
+                Session::put('user_id', $user->id);
+                $status = $user->forgot_pass;
+                return response($status);
+            } else {
+                return response('inactive');
+            }
+        }
+
+        // If local user missing, create minimal user and login
+        $data = array(
+            'profile_id' => null,
+            'user_name' => $firebaseUser['email'],
+            'name' => $firebaseUser['displayName'] ?? $firebaseUser['email'],
+            'email' => $email,
+            'age_group' => null,
+            'password' => md5(str_random(8)),
+            'gender' => null,
+            'country_id' => null,
+            'country_code' => null,
+            'contact_no' => null,
+            'currency' => null,
+            'city' => null,
+            'activation_code' => '',
+            'random_code' => uniqid(rand(), true),
+            'status' => '1',
+            'creation_date' => date("Y-m-d H:i:s"),
+            'updation_date' => date("Y-m-d H:i:s"),
+            'user_type' => 2,
+            'roles_id' => null,
+            'social_media_id' => null,
+            'subscription_type' => 0,
+            'forgot_pass' => 0
+        );
+        $inserted = Users::insert($data);
+        if ($inserted) {
+            $newUser = Users::where('email', $email)->first();
+            if ($newUser) {
+                Session::put('user_id', $newUser->id);
+                return response('0');
+            }
+        }
+
+        return response('failed', 500);
     }
     
     public function userHomePage()
