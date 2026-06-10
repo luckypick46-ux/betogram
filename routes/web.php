@@ -1,9 +1,5 @@
 <?php
 
-// Route::get('/','LandingPageController@index');
-// Route::get('/login','LandingPageController@index');
-// ... keep all your existing routes above ...
-
 // Keep all your existing routes as they are
 Route::get('/','LandingPageController@index');
 Route::get('/login','LandingPageController@index');
@@ -25,7 +21,10 @@ Route::get('/contact','LandingPageController@contact');
 Route::get('/faq','LandingPageController@faq');
 Route::get('/change-password','RegistrationController@change_password');
 Route::post('/change-password-data','RegistrationController@change_password_data');
-Route::get('/deposit','RegistrationController@depositPage');  // ← This is your old deposit route
+
+// OLD deposit route (kept for compatibility - points to old RegistrationController)
+Route::get('/deposit', 'RegistrationController@depositPage');
+
 Route::get('/api/leaderboard','RegistrationController@leaderboardApi');
 Route::get('/leaderboard', function(){ return view('leaderboard'); });
 Route::get('/academy','RegistrationController@academyPage');
@@ -63,18 +62,26 @@ Route::post('/api/bet/submit','BettingController@submitBetSlip');
 Route::post('/search-username','NewsFeedController@SearchByUsername');
 
 //-----newsfeed start-----------//
-//Route::post('/preregdata','LandingPageController@PreRegistration');
 Route::get('/register', ['uses'=>'RegistrationController@Register','as'=>'Register']);
 Route::get('/test-upload','testing@index');
 Route::get('/post-upload','testing@postUpload');
 
-// NEW: Flutterwave Payment Routes (Using different URLs to avoid conflicts)
+// ============================================
+// NEW: Flutterwave Payment Routes
+// ============================================
 Route::group(['middleware' => 'auth'], function () {
+    // Wallet and deposit pages
     Route::get('/my-wallet', 'FlutterwaveController@wallet')->name('wallet.index');
     Route::get('/payment-page', 'FlutterwaveController@showDepositPage')->name('deposit.page');
+    
+    // Payment processing
     Route::post('/process-deposit', 'FlutterwaveController@initializeDeposit')->name('flutterwave.deposit');
     Route::get('/payment-callback', 'FlutterwaveController@callback')->name('flutterwave.callback');
+    
+    // Admin: Confirm manual payments (crypto & Skrill)
+    Route::get('/admin/confirm-payment/{transactionId}', 'FlutterwaveController@confirmManualPayment')->name('confirm.manual.payment');
 });
 
-// Note: Your old /deposit route (from RegistrationController@depositPage) will still work
-// The new payment routes use different URLs: /my-wallet, /payment-page, /process-deposit
+// Note: 
+// - Old /deposit route still works (uses RegistrationController@depositPage)
+// - New payment system uses: /payment-page, /my-wallet, /process-deposit
