@@ -1,4 +1,10 @@
 <?php
+
+// Route::get('/','LandingPageController@index');
+// Route::get('/login','LandingPageController@index');
+// ... keep all your existing routes above ...
+
+// Keep all your existing routes as they are
 Route::get('/','LandingPageController@index');
 Route::get('/login','LandingPageController@index');
 Route::post('/CheckUserName','LandingPageController@check_username');
@@ -19,24 +25,28 @@ Route::get('/contact','LandingPageController@contact');
 Route::get('/faq','LandingPageController@faq');
 Route::get('/change-password','RegistrationController@change_password');
 Route::post('/change-password-data','RegistrationController@change_password_data');
-Route::get('/deposit','RegistrationController@depositPage');
+Route::get('/deposit','RegistrationController@depositPage');  // ← This is your old deposit route
 Route::get('/api/leaderboard','RegistrationController@leaderboardApi');
 Route::get('/leaderboard', function(){ return view('leaderboard'); });
 Route::get('/academy','RegistrationController@academyPage');
 Route::get('/shop','RegistrationController@shopPage');
 Route::get('/api/products','RegistrationController@productsApi');
+
 // Cart endpoints
 Route::post('/api/cart/add','CartController@addToCart');
 Route::post('/api/cart/remove','CartController@removeFromCart');
 Route::post('/api/cart/update','CartController@updateCart');
 Route::get('/api/cart','CartController@getCartItems');
 Route::post('/api/cart/clear','CartController@clearCart');
+
 // Payment endpoints
 Route::post('/api/checkout','PaymentController@initiateCheckout');
 Route::post('/api/checkout/success','PaymentController@checkoutSuccess');
 Route::get('/api/orders','PaymentController@orderHistory');
 Route::post('/api/webhooks/stripe','PaymentController@stripeWebhook');
-Route::post('/api/webhooks/paypal','PaymentController@paypalWebhook');// Betting/Football routes
+Route::post('/api/webhooks/paypal','PaymentController@paypalWebhook');
+
+// Betting/Football routes
 Route::get('/football','BettingController@footballPage');
 Route::get('/hockey','BettingController@hockeyPage');
 Route::get('/basketball','BettingController@basketballPage');
@@ -50,23 +60,21 @@ Route::post('/api/bet/place','BettingController@placeBet');
 Route::get('/api/bet/slip','BettingController@getBetSlip');
 Route::post('/api/bet/remove','BettingController@removeBet');
 Route::post('/api/bet/submit','BettingController@submitBetSlip');
-Route::post('/search-username','NewsFeedController@SearchByUsername');//-----newsfeed start-----------//
+Route::post('/search-username','NewsFeedController@SearchByUsername');
+
+//-----newsfeed start-----------//
 //Route::post('/preregdata','LandingPageController@PreRegistration');
 Route::get('/register', ['uses'=>'RegistrationController@Register','as'=>'Register']);
 Route::get('/test-upload','testing@index');
 Route::get('/post-upload','testing@postUpload');
 
-
-use App\Http\Controllers\FlutterwaveController;
-
-// Payment routes
-Route::middleware(['auth'])->group(function () {
-    Route::get('/wallet', [FlutterwaveController::class, 'wallet'])->name('wallet.index');
-    Route::get('/deposit', [FlutterwaveController::class, 'showDepositPage'])->name('deposit.page');
-    Route::post('/deposit', [FlutterwaveController::class, 'initializeDeposit'])->name('flutterwave.deposit');
-    Route::get('/payment/callback', [FlutterwaveController::class, 'callback'])->name('flutterwave.callback');
+// NEW: Flutterwave Payment Routes (Using different URLs to avoid conflicts)
+Route::group(['middleware' => 'auth'], function () {
+    Route::get('/my-wallet', 'FlutterwaveController@wallet')->name('wallet.index');
+    Route::get('/payment-page', 'FlutterwaveController@showDepositPage')->name('deposit.page');
+    Route::post('/process-deposit', 'FlutterwaveController@initializeDeposit')->name('flutterwave.deposit');
+    Route::get('/payment-callback', 'FlutterwaveController@callback')->name('flutterwave.callback');
 });
 
-
-
-?>
+// Note: Your old /deposit route (from RegistrationController@depositPage) will still work
+// The new payment routes use different URLs: /my-wallet, /payment-page, /process-deposit

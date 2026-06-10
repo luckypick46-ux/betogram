@@ -46,11 +46,18 @@
                     </ul>
                 </li>
                 <li class="header_deposit hidden-xs">
-                    <a href="{{ url('deposit') }}" class="btn btn-deposit btn-account-balance" title="Go to deposit page" aria-label="Deposit funds">
-                        <i class="fa fa-user" aria-hidden="true"></i>
-                        <span class="account-balance-text">€0.00</span>
-                    </a>
-                </li>
+    <a href="{{ url('payment-page') }}" class="btn btn-deposit btn-account-balance" title="Go to deposit page" aria-label="Deposit funds">
+        <i class="fa fa-credit-card" aria-hidden="true"></i>
+        <span class="account-balance-text">${{ number_format(Auth::user()->balance ?? 0, 2) }}</span>
+    </a>
+</li>
+
+<li class="header_wallet hidden-xs">
+    <a href="{{ url('my-wallet') }}" class="btn btn-wallet" title="My Wallet" aria-label="Wallet">
+        <i class="fa fa-wallet" aria-hidden="true"></i>
+        <span class="wallet-text">Wallet</span>
+    </a>
+</li>
                 @endif
             </ul>
         </div>
@@ -135,6 +142,47 @@
         color: #999;
         font-size: 12px;
     }
+
+
+
+
+    .btn-wallet {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 25px;
+    padding: 8px 20px;
+    margin-left: 10px;
+    transition: all 0.3s;
+}
+
+.btn-wallet:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    color: white;
+}
+
+.btn-deposit {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-radius: 25px;
+    padding: 8px 20px;
+    transition: all 0.3s;
+}
+
+.btn-deposit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+    color: white;
+}
+
+.account-balance-text {
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+.wallet-text {
+    margin-left: 8px;
+}
 </style>
 <div class="nav_hight"></div>
 <!-- Page header end -->
