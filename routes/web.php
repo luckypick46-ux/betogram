@@ -55,4 +55,18 @@ Route::post('/search-username','NewsFeedController@SearchByUsername');//-----new
 Route::get('/register', ['uses'=>'RegistrationController@Register','as'=>'Register']);
 Route::get('/test-upload','testing@index');
 Route::get('/post-upload','testing@postUpload');
+
+
+use App\Http\Controllers\FlutterwaveController;
+
+// Payment routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/wallet', [FlutterwaveController::class, 'wallet'])->name('wallet.index');
+    Route::get('/deposit', [FlutterwaveController::class, 'showDepositPage'])->name('deposit.page');
+    Route::post('/deposit', [FlutterwaveController::class, 'initializeDeposit'])->name('flutterwave.deposit');
+    Route::get('/payment/callback', [FlutterwaveController::class, 'callback'])->name('flutterwave.callback');
+});
+
+
+
 ?>
